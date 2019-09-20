@@ -1470,7 +1470,7 @@ void CPU::cpuStep() {
         case 0x16:
             c = (Memory::readByte(HL) >> 7) & 0x01;
             Memory::writeByte(HL, (Memory::readByte(HL) << 1) | (CARRY_F(AF) >> 4));
-            AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) | (c << 4)));
+            AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
             totalCycles += 4;
             break;
 
@@ -1882,7 +1882,7 @@ void CPU::cpuStep() {
             totalCycles += 2;
             break;
         case 0x66:
-            AF = LD_nN_n(AF, ZERO_S(Memory::readByte(DE) & 0x10) | HALF_V | CARRY_F(AF));
+            AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x10) | HALF_V | CARRY_F(AF));
             totalCycles += 4;
             break;
         case 0x6F:
