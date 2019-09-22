@@ -10,7 +10,8 @@
 
 // #define HALT_AT_ZERO
 // #define HALT_AFTER_CYCLE 100000000
-// #define DEBUG_AFTER_CYCLE 1
+// #define DEBUG_AFTER_CYCLE 0
+// #define DEBUG_AFTER_PC PC_TIMER
 
 /**
  * Registers
@@ -94,8 +95,16 @@ uint8_t enableIRQ = 0, disableIRQ = 0;
 // Divider interval
 uint8_t divider = 0;
 
+// Timer control
+uint16_t timerA = 0, timerB = 0;
+
 volatile bool CPU::cpuEnabled = false;
 volatile uint64_t CPU::totalCycles = 0;
+
+// Debug variables
+#ifdef DEBUG_AFTER_CYCLE
+uint64_t debugAfterCycle = DEBUG_AFTER_CYCLE;
+#endif
 
 /**
  * Functions
@@ -114,9 +123,9 @@ uint16_t CPU::readNn()
 
 void CPU::pushStack(uint16_t data) {
     SP--;
-    Memory::writeByte(SP, data & 0x00FF);
-    SP--;
     Memory::writeByte(SP, data >> 8);
+    SP--;
+    Memory::writeByte(SP, data & 0x00FF);
 }
 
 uint16_t CPU::popStack() {
@@ -124,7 +133,7 @@ uint16_t CPU::popStack() {
     SP++;
     uint8_t n2 = Memory::readByte(SP);
     SP++;
-    return (n1 << 8) | n2;
+    return (n2 << 8) | n1;
 }
 
 void dumpRegister() {
@@ -189,6 +198,38 @@ void CPU::cpuStep() {
     }
 #endif
 
+    // Update timer
+    if ((Memory::readByte(MEM_TIMER_CONTROL) & 0x04) == 0x04) {
+        switch (Memory::readByte(MEM_TIMER_CONTROL) & 0x03)
+        {
+        case 3:
+            timerB = totalCycles % 250;
+            break;
+
+        case 2:
+            timerB = totalCycles % 64;
+            break;
+        
+        case 1:
+            timerB = totalCycles % 16;
+            break;
+        
+        default:
+            timerB = totalCycles % 1000;
+            break;
+        }
+
+        if (timerB == 0 || timerB < timerA) {
+            Memory::writeByteInternal(MEM_TIMA, Memory::readByte(MEM_TIMA) + 1, true);
+
+            if (Memory::readByte(MEM_TIMA) == 0) {
+                Memory::writeByteInternal(MEM_TIMA, Memory::readByte(MEM_TMA), true);
+                Memory::interrupt(IRQ_TIMER);
+            }
+        }
+        timerA = timerB;
+    }
+
     // Check for interrupts
     if (IME) {
         interrupt = Memory::readByte(MEM_IRQ_FLAG) & Memory::readByte(MEM_IRQ_ENABLE);
@@ -199,6 +240,12 @@ void CPU::cpuStep() {
             pushStack(PC);
             PC = PC_VBLANK;
         }
+        else if ((interrupt & IRQ_TIMER) == IRQ_TIMER) {
+            IME = 0;
+            Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_TIMER));
+            pushStack(PC);
+            PC = PC_TIMER;
+        }
     }
 
     // Update divider register
@@ -207,10 +254,16 @@ void CPU::cpuStep() {
         Memory::writeByteInternal(MEM_DIVIDER, Memory::readByte(MEM_DIVIDER) + 1, true);
     }
 
+#ifdef DEBUG_AFTER_PC
+    if (PC == DEBUG_AFTER_PC && debugAfterCycle == 0) {
+        debugAfterCycle = totalCycles;
+    }
+#endif
+
     op = readOp();
 
 #ifdef DEBUG_AFTER_CYCLE
-    if (totalCycles > DEBUG_AFTER_CYCLE) {
+    if (debugAfterCycle > 0 && totalCycles >= debugAfterCycle) {
         delay(20);
         Serial.printf("Cycle %llu: %02x at %04x - ", totalCycles, op, PC - 1);
         dumpRegister();
@@ -2807,11 +2860,11 @@ void CPU::cpuStep() {
         break;
     }
 
-    if (enableIRQ != 0 && ++enableIRQ == 0) {
+    if (enableIRQ != 0 && --enableIRQ == 0) {
         IME = 1;
     }
 
-    if (disableIRQ != 0 && ++disableIRQ == 0) {
+    if (disableIRQ != 0 && --disableIRQ == 0) {
         IME = 0;
     }
 }
