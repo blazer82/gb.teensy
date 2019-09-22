@@ -96,7 +96,7 @@ uint8_t enableIRQ = 0, disableIRQ = 0;
 uint8_t divider = 0;
 
 // Timer control
-uint16_t timerA = 0, timerB = 0;
+uint16_t timerA = 0, timerB = 0xFF;
 
 volatile bool CPU::cpuEnabled = false;
 volatile uint64_t CPU::totalCycles = 0;
@@ -203,19 +203,19 @@ void CPU::cpuStep() {
         switch (Memory::readByte(MEM_TIMER_CONTROL) & 0x03)
         {
         case 3:
-            timerB = totalCycles % 250;
+            timerB = totalCycles % 64;
             break;
 
         case 2:
-            timerB = totalCycles % 64;
-            break;
-        
-        case 1:
             timerB = totalCycles % 16;
             break;
         
+        case 1:
+            timerB = totalCycles % 4;
+            break;
+        
         default:
-            timerB = totalCycles % 1000;
+            timerB = totalCycles % 250;
             break;
         }
 
