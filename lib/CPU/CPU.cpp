@@ -75,16 +75,19 @@ uint16_t PC = PC_START; // Program Counter
  */
 
 // Virtual power
-volatile bool enabled = 0;
+volatile bool CPU::cpuEnabled = false;
 
 // Keep count of cycles
-volatile uint64_t totalCycles = 0;
+volatile uint64_t CPU::totalCycles = 0;
 
 // Init OP
 uint8_t op = 0x00;
 
 // Init IME
 bool IME = 0;
+
+// Virtual HALT
+bool halted = 0;
 
 // Define benchmark and debugging options
 double start, stop;
@@ -97,9 +100,6 @@ uint8_t divider = 0;
 
 // Timer control
 uint16_t timerA = 0, timerB = 0xFF;
-
-volatile bool CPU::cpuEnabled = false;
-volatile uint64_t CPU::totalCycles = 0;
 
 // Debug variables
 #ifdef DEBUG_AFTER_CYCLE
@@ -148,7 +148,7 @@ void dumpStack() {
 }
 
 void stopAndRestart() {
-    Serial.printf("Cycles: %llu\n", totalCycles);
+    Serial.printf("Cycles: %llu\n", CPU::totalCycles);
     Serial.printf("Restarting in %d seconds...\n", 60);
     Serial.printf("Halting now.\n");
     for(;;) {}
@@ -231,20 +231,30 @@ void CPU::cpuStep() {
     }
 
     // Check for interrupts
-    if (IME) {
+    if (IME || halted) {
         interrupt = Memory::readByte(MEM_IRQ_FLAG) & Memory::readByte(MEM_IRQ_ENABLE);
 
         if ((interrupt & IRQ_VBLANK) == IRQ_VBLANK) {
             IME = 0;
-            Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_VBLANK));
-            pushStack(PC);
-            PC = PC_VBLANK;
+            if (halted) {
+                halted = 0;
+            }
+            else {
+                Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_VBLANK));
+                pushStack(PC);
+                PC = PC_VBLANK;
+            }
         }
         else if ((interrupt & IRQ_TIMER) == IRQ_TIMER) {
             IME = 0;
-            Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_TIMER));
-            pushStack(PC);
-            PC = PC_TIMER;
+            if (halted) {
+                halted = 0;
+            }
+            else {
+                Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_TIMER));
+                pushStack(PC);
+                PC = PC_TIMER;
+            }
         }
     }
 
@@ -252,6 +262,12 @@ void CPU::cpuStep() {
     if (divider > (totalCycles % 61)) {
         divider = totalCycles % 61;
         Memory::writeByteInternal(MEM_DIVIDER, Memory::readByte(MEM_DIVIDER) + 1, true);
+    }
+
+    // Check if halted
+    if (halted) {
+        totalCycles += 1; // In order for the timer to work properly
+        return;
     }
 
 #ifdef DEBUG_AFTER_PC
@@ -281,6 +297,12 @@ void CPU::cpuStep() {
     {
     // NOP
     case 0x0:
+        totalCycles += 1;
+        break;
+
+    // HALT
+    case 0x76:
+        halted = 1;
         totalCycles += 1;
         break;
 
