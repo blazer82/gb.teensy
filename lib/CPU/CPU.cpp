@@ -99,7 +99,7 @@ uint8_t enableIRQ = 0, disableIRQ = 0;
 uint8_t divider = 0;
 
 // Timer control
-uint16_t timerA = 0, timerB = 0xFF;
+uint8_t timerA = 0, timerB = 0xFF;
 
 // Debug variables
 #ifdef DEBUG_AFTER_CYCLE
@@ -148,10 +148,11 @@ void dumpStack() {
 }
 
 void stopAndRestart() {
-    Serial.printf("Cycles: %llu\n", CPU::totalCycles);
-    Serial.printf("Restarting in %d seconds...\n", 60);
-    Serial.printf("Halting now.\n");
-    for(;;) {}
+    for(;;) {
+        Serial.printf("Cycles: %llu\n", CPU::totalCycles);
+        Serial.printf("Restarting in %d seconds...\n", 10);
+        Serial.printf("Halting now.\n");
+    }
 }
 
 void CPU::cpuStep() {
@@ -2721,6 +2722,15 @@ void CPU::cpuStep() {
         if (ZERO_F(AF) == 0)
         {
             PC += (int8_t)n;
+
+#ifdef DEBUG_AFTER_CYCLE
+            if (totalCycles > debugAfterCycle) {
+                Serial.printf("JP cc,n to %04x\n", PC);
+                delay(20);
+                //Serial.printf("OP %02x\n", Memory::readByte(PC));
+                //delay(20);
+            }
+#endif
         }
         totalCycles += 2;
         break;
