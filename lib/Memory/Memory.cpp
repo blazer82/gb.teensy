@@ -70,8 +70,11 @@ void Memory::writeByteInternal(unsigned int location, uint8_t data, bool interna
         else if (mbc1_mode == 0 && location >= MEM_ROM_BANK && location < 0x6000) {
             Serial.printf("Attempted to set ROM addressing to %#x TODO: implement!\n", data & 0x3);
         }
-        else {
+        else if (location >= MEM_VRAM_TILES) {
             memory[location - 0x8000] = data;
+        }
+        else {
+            // Illegal operation
         }
         
         break;

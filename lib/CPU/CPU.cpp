@@ -137,7 +137,7 @@ uint16_t CPU::popStack() {
 }
 
 void dumpRegister() {
-    Serial.printf("AF: %04x, BC: %04x, DE: %04x, HL: %04x\n", AF, BC, DE, HL);
+    Serial.printf("AF: %04x, BC: %04x, DE: %04x, HL: %04x, SP: %04x\n", AF, BC, DE, HL, SP);
 }
 
 void dumpStack() {
