@@ -2338,6 +2338,7 @@ void CPU::cpuStep() {
         case 0x83:
             DE = DE & 0xFFFE;
             totalCycles += 2;
+            break;
         case 0x84:
             HL = HL & 0xFEFF;
             totalCycles += 2;
@@ -2401,6 +2402,7 @@ void CPU::cpuStep() {
         case 0x93:
             DE = DE & 0xFFFB;
             totalCycles += 2;
+            break;
         case 0x94:
             HL = HL & 0xFBFF;
             totalCycles += 2;
@@ -2464,6 +2466,7 @@ void CPU::cpuStep() {
         case 0xA3:
             DE = DE & 0xFFEF;
             totalCycles += 2;
+            break;
         case 0xA4:
             HL = HL & 0xEFFF;
             totalCycles += 2;
@@ -2527,6 +2530,7 @@ void CPU::cpuStep() {
         case 0xB3:
             DE = DE & 0xFFBF;
             totalCycles += 2;
+            break;
         case 0xB4:
             HL = HL & 0xBFFF;
             totalCycles += 2;
