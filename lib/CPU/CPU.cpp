@@ -2722,15 +2722,6 @@ void CPU::cpuStep() {
         if (ZERO_F(AF) == 0)
         {
             PC += (int8_t)n;
-
-#ifdef DEBUG_AFTER_CYCLE
-            if (totalCycles > debugAfterCycle) {
-                Serial.printf("JP cc,n to %04x\n", PC);
-                delay(20);
-                //Serial.printf("OP %02x\n", Memory::readByte(PC));
-                //delay(20);
-            }
-#endif
         }
         totalCycles += 2;
         break;
