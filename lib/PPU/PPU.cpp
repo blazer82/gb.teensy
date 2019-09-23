@@ -56,7 +56,7 @@ void PPU::getSpritesForLine(uint8_t y, uint16_t *line) {
     for (uint16_t i = 0xFE00; i < 0xFEA0; i += 4) {
         spritePosY = Memory::readByte(i) - 16;
         spriteLineY = y - spritePosY;
-        if (spriteLineY > 0 && spriteLineY < 8) {
+        if (spriteLineY >= 0 && spriteLineY < 8) {
             spritePosX = Memory::readByte(i + 1) - 8;
             tileIndex = Memory::readByte(i + 2);
             attributes = Memory::readByte(i + 3);
@@ -67,12 +67,9 @@ void PPU::getSpritesForLine(uint8_t y, uint16_t *line) {
             for (int8_t c = 0; c < 8; c++) {
                 x = spritePosX + c;
                 if (x > 0) {
-                    if ((attributes & 0x80) == 0) {
+                    if ((attributes & 0x80) == 0 || line[x] == 0) {
                         pixel = (((tileLineU >> (7 - c)) << 1) & 0x2) | ((tileLineL >> (7 - c)) & 0x1);
                         if (pixel != 0) line[x] = pixel;
-                    }
-                    else {
-                        // TODO: Put sprite above bg color 0
                     }
                 }
             }
