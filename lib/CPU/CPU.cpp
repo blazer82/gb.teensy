@@ -703,13 +703,15 @@ void CPU::cpuStep() {
     case 0xF8:
         sn = (int8_t)readOp();
         HL = SP + sn;
-        AF = LD_nN_n(AF, HALF_S(SP >> 8, sn) | CARRY_S(HL, SP >> 8, sn));
+        AF = LD_nN_n(AF, HALF_S(SP, sn) | CARRY_S(HL & 0xFF, SP & 0xFF, sn));
         totalCycles += 3;
         break;
 
     // LD (nn),SP
     case 0x08:
-        Memory::writeByte(readNn(), Memory::readByte(SP));
+        nn = readNn();
+        Memory::writeByte(nn, SP & 0xFF);
+        Memory::writeByte(nn + 1, SP >> 8);
         totalCycles += 5;
         break;
 
@@ -1369,10 +1371,10 @@ void CPU::cpuStep() {
 
     // ADD SP,n
     case 0xE8:
-        nn1 = SP;
-        nn2 = readNn();
-        SP = nn1 + nn2;
-        AF = LD_nN_n(AF, HALF_S(nn1 >> 8, nn2 >> 8) | CARRY_S(SP, nn1, nn2));
+        nn = SP;
+        sn = (int8_t)readOp();
+        SP = nn + sn;
+        AF = LD_nN_n(AF, HALF_S(nn, sn) | CARRY_S(SP & 0xFF, nn & 0xFF, sn));
         totalCycles += 4;
         break;
 
