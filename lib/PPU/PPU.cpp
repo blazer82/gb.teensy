@@ -13,6 +13,7 @@
 uint16_t *lines[2];
 uint64_t ticks = 0;
 uint8_t originX, originY, lcdc, lcdStatus;
+uint16_t offsetX, offsetY;
 
 PPU::PPU() {
     //Allocate memory for the pixel buffers
@@ -20,6 +21,10 @@ PPU::PPU() {
         lines[i] = (uint16_t*) malloc(320 * sizeof(uint16_t));
         memset(lines[i], 0, 320 * sizeof(uint16_t));
     }
+
+    // Init offsets
+    offsetX = (320 - 160) / 2;
+    offsetY = (240 - 144) / 2;
 
     // Start display device
     display = Display();
@@ -120,7 +125,7 @@ void PPU::ppuStep() {
                     sendingLine = calculatingLine;
                     calculatingLine = (calculatingLine == 0) ? 1 : 0;
 
-                    display.hLine(y, lines[sendingLine]);
+                    display.hLine(y + offsetY, offsetX, lines[sendingLine]);
 
                     Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
                 }
