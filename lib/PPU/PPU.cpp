@@ -51,7 +51,7 @@ void PPU::getBackgroundForLine(uint8_t y, uint16_t *line, uint8_t originX, uint8
 void PPU::getSpritesForLine(uint8_t y, uint16_t *line) {
     uint8_t spritePosX, spritePosY;
     uint8_t tileIndex, attributes, tileLineU, tileLineL, pixel;
-    int8_t spriteLineY, x;
+    int16_t spriteLineY, x;
 
     for (uint16_t i = 0xFE00; i < 0xFEA0; i += 4) {
         spritePosY = Memory::readByte(i) - 16;
