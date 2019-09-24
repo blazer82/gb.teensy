@@ -66,7 +66,7 @@ void PPU::getSpritesForLine(uint8_t y, uint16_t *line) {
 
             for (int8_t c = 0; c < 8; c++) {
                 x = spritePosX + c;
-                if (x > 0) {
+                if (x >= 0) {
                     if ((attributes & 0x80) == 0 || line[x] == 0) {
                         pixel = (((tileLineU >> (7 - c)) << 1) & 0x2) | ((tileLineL >> (7 - c)) & 0x1);
                         if (pixel != 0) line[x] = pixel;
