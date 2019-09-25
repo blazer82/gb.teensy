@@ -2,7 +2,7 @@
 #include "CPU.h"
 #include "PPU.h"
 
-//#define BENCHMARK
+//#define BENCHMARK_AFTER_CYCLES 20000000
 
 PPU ppu;
 
@@ -19,7 +19,7 @@ void setup()
 
 void loop()
 {
-#ifdef BENCHMARK
+#ifdef BENCHMARK_AFTER_CYCLES
     uint64_t start = millis();
 #endif
 
@@ -27,8 +27,8 @@ void loop()
         ppu.ppuStep();
         CPU::cpuStep();
 
-#ifdef BENCHMARK
-        if (CPU::totalCycles > 10000000) {
+#ifdef BENCHMARK_AFTER_CYCLES
+        if (CPU::totalCycles > BENCHMARK_AFTER_CYCLES) {
             uint64_t time = millis() - start;
             uint64_t hz = 1000 * CPU::totalCycles / time;
             Serial.printf("Emulated %lu Hz\n", hz);
