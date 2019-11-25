@@ -7,6 +7,6 @@ This is a work-in-progress Gameboy emulator for the Teensy 4.0 platform.
 # TODO
 
 - Implement DMA for SPI
-- Possibly port to mbed, [see also](https://os.mbed.com/docs/mbed-os/v5.11/reference/adding-and-configuring-targets.html)
+- Eventually port to bigger ST7701 screen
 - Implement APU
 - Implement controls
