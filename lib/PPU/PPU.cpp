@@ -1,9 +1,13 @@
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include "PPU.h"
-#include "Display.h"
 #include "CPU.h"
 #include "Memory.h"
+
+#ifdef DISPLAY_ENABLED
+#include "Display.h"
+#endif
 
 #define COLOR1 0x0000
 #define COLOR2 0x4BC4
@@ -26,11 +30,13 @@ PPU::PPU() {
     offsetX = (320 - 160) / 2;
     offsetY = (240 - 144) / 2;
 
+#ifdef DISPLAY_ENABLED
     // Start display device
     display = Display();
     display.begin();
     display.setRotation(1);
     display.fillScreen(ILI9341_BLACK);
+#endif
 
     CPU::cpuEnabled = 1;
 }
@@ -125,7 +131,9 @@ void PPU::ppuStep() {
                     sendingLine = calculatingLine;
                     calculatingLine = (calculatingLine == 0) ? 1 : 0;
 
+#ifdef DISPLAY_ENABLED
                     display.hLine(y + offsetY, offsetX, lines[sendingLine]);
+#endif
 
                     Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
                 }
