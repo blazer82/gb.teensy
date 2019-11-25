@@ -1,10 +1,12 @@
 #include <Arduino.h>
 #include "CPU.h"
 #include "PPU.h"
+#include "APU.h"
 
 //#define BENCHMARK_AFTER_CYCLES 20000000
 
 PPU ppu;
+APU apu;
 
 void setup()
 {
@@ -13,6 +15,7 @@ void setup()
     Serial.begin(115200);
 
     ppu = PPU();
+    apu = APU();
 
     digitalWrite(LED_BUILTIN, HIGH);
 }
