@@ -61,11 +61,11 @@ void Memory::writeByteInternal(unsigned int location, uint8_t data, bool interna
         // TODO: Add support for ROM switch other than MBC1
         if (location >= 0x6000 && location < MEM_VRAM_TILES) {
             mbc1_mode = data & 1;
-            Serial.printf("MBC1 mode set to %#x\n", mbc1_mode);
+            //Serial.printf("MBC1 mode set to %#x\n", mbc1_mode);
         }
         else if (location >= 0x2000 && location < MEM_ROM_BANK) {
             romBank = MAX(data & 0x1F, 1) - 1;
-            Serial.printf("ROM bank set to %i\n", romBank);
+            //Serial.printf("ROM bank set to %i\n", romBank);
         }
         else if (mbc1_mode == 0 && location >= MEM_ROM_BANK && location < 0x6000) {
             Serial.printf("Attempted to set ROM addressing to %#x TODO: implement!\n", data & 0x3);

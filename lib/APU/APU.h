@@ -6,5 +6,6 @@ class APU
         APU();
         void apuStep();
     protected:
+        float getDuty(uint8_t memInput);
     private:
 };

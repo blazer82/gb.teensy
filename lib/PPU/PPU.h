@@ -2,7 +2,7 @@
 
 #include <sys/_stdint.h>
 
-//#define DISPLAY_ENABLED
+#define DISPLAY_ENABLED
 
 #ifdef DISPLAY_ENABLED
 #include "Display.h"

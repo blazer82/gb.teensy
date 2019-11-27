@@ -27,6 +27,7 @@ void loop()
 #endif
 
     for(;;) {
+        apu.apuStep();
         ppu.ppuStep();
         CPU::cpuStep();
 
