@@ -3,9 +3,9 @@
 class APU
 {
     public:
-        APU();
-        void apuStep();
+        static void init();
+        static void apuStep();
     protected:
-        float getDuty(uint8_t memInput);
+        static float getDuty(uint8_t memInput);
     private:
 };

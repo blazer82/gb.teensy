@@ -1,12 +1,9 @@
 #include <Arduino.h>
 #include "CPU.h"
-#include "PPU.h"
 #include "APU.h"
+#include "PPU.h"
 
 //#define BENCHMARK_AFTER_CYCLES 20000000
-
-PPU ppu;
-APU apu;
 
 void setup()
 {
@@ -14,8 +11,8 @@ void setup()
     pinMode(LED_BUILTIN, OUTPUT);
     Serial.begin(115200);
 
-    ppu = PPU();
-    apu = APU();
+    APU::init();
+    PPU::init();
 
     digitalWrite(LED_BUILTIN, HIGH);
 }
@@ -27,8 +24,8 @@ void loop()
 #endif
 
     for(;;) {
-        apu.apuStep();
-        ppu.ppuStep();
+        PPU::ppuStep();
+        APU::apuStep();
         CPU::cpuStep();
 
 #ifdef BENCHMARK_AFTER_CYCLES

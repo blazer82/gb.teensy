@@ -20,7 +20,7 @@ AudioConnection patchCord6(mixerR, 0, i2s1, 1);
 
 AudioControlSGTL5000 sgtl5000_1;
 
-APU::APU() {
+void APU::init() {
     AudioMemory(20); // TODO determine how much is needed
     sgtl5000_1.enable();
     sgtl5000_1.volume(0.32);
