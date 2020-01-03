@@ -8,6 +8,7 @@
 bool mbc1_mode = 0;
 uint8_t romBank = 0;
 
+// TODO: Maybe switch to compile-time allocation
 uint8_t *Memory::memory = (uint8_t*) malloc((0xFFFF - 0x8000 + 1) * sizeof(uint8_t));
 
 void Memory::writeByteInternal(unsigned int location, uint8_t data, bool internal)
