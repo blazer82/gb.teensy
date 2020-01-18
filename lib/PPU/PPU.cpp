@@ -19,11 +19,7 @@ uint64_t ticks = 0;
 uint8_t originX, originY, lcdc, lcdStatus;
 uint16_t offsetX, offsetY;
 
-#ifdef DISPLAY_ENABLED
-Display PPU::display = Display();
-#endif
-
-void PPU::init() {
+PPU::PPU() {
     //Allocate memory for the pixel buffers
     for (int i = 0; i < 2; i++) {
         lines[i] = (uint16_t*) malloc(320 * sizeof(uint16_t));
@@ -36,6 +32,7 @@ void PPU::init() {
 
 #ifdef DISPLAY_ENABLED
     // Start display device
+    display = Display();
     display.begin();
     display.setRotation(1);
     display.fillScreen(ILI9341_BLACK);

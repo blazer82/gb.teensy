@@ -4,13 +4,15 @@
 
 //#define BENCHMARK_AFTER_CYCLES 20000000
 
+PPU ppu;
+
 void setup()
 {
     // initialize LED digital pin as an output.
     pinMode(LED_BUILTIN, OUTPUT);
     Serial.begin(115200);
 
-    PPU::init();
+    ppu = PPU();
 
     digitalWrite(LED_BUILTIN, HIGH);
 }
@@ -22,7 +24,7 @@ void loop()
 #endif
 
     for(;;) {
-        PPU::ppuStep();
+        ppu.ppuStep();
         CPU::cpuStep();
 
 #ifdef BENCHMARK_AFTER_CYCLES
