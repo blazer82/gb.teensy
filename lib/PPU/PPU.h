@@ -11,15 +11,15 @@
 class PPU
 {
     public:
-        PPU();
-        void ppuStep();
+        static void init();
+        static void ppuStep();
     protected:
 #ifdef DISPLAY_ENABLED
-        Display display;
+        static Display display;
 #endif
         
-        void getBackgroundForLine(uint8_t y, uint16_t *line, uint8_t originX, uint8_t originY);
-        void getSpritesForLine(uint8_t y, uint16_t *line);
-        void mapColorsForLine(uint16_t *line);
+        static void getBackgroundForLine(uint8_t y, uint16_t *line, uint8_t originX, uint8_t originY);
+        static void getSpritesForLine(uint8_t y, uint16_t *line);
+        static void mapColorsForLine(uint16_t *line);
     private:
 };
