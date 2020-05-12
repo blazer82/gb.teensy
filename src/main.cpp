@@ -1,5 +1,5 @@
 /**
- * FT81x on ST7701S Arduino Driver
+ * gb.teensy Emulation Software
  * Copyright (C) 2020  Raphael Stäbler
  * 
  * This program is free software: you can redistribute it and/or modify
