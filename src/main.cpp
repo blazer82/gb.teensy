@@ -1,5 +1,5 @@
 /**
- * gb.teensy Emulation Software
+ * FT81x on ST7701S Arduino Driver
  * Copyright (C) 2020  Raphael Stäbler
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -17,41 +17,56 @@
  **/
 
 #include <Arduino.h>
-#include "CPU.h"
-#include "PPU.h"
+#include <FT81x.h>
+#include <CPU.h>
+#include <PPU.h>
 
-//#define BENCHMARK_AFTER_CYCLES 20000000
+void waitForKeyPress();
 
-PPU ppu;
+static PPU ppu;
 
-void setup()
-{
-    // initialize LED digital pin as an output.
-    pinMode(LED_BUILTIN, OUTPUT);
-    Serial.begin(115200);
+void setup() {
+    Serial.begin(9600);
+
+    SPI.begin();
+
+    waitForKeyPress();
 
     ppu = PPU();
 
-    digitalWrite(LED_BUILTIN, HIGH);
+    Serial.println("Enable display");
+    FT81x::init();
+
+    delay(100);
+
+    Serial.printf("REG_ID %x\n", FT81x::read8(FT81x_REG_ID));
+
+    Serial.printf("REG_HCYCLE %i\n", FT81x::read16(FT81x_REG_HCYCLE));
+    Serial.printf("REG_HSIZE %i\n", FT81x::read16(FT81x_REG_HSIZE));
+
+    Serial.printf("REG_VCYCLE %i\n", FT81x::read16(FT81x_REG_VCYCLE));
+    Serial.printf("REG_VSIZE %i\n", FT81x::read16(FT81x_REG_VSIZE));
+
+    // waitForKeyPress();
+    FT81x::begin();
+    FT81x::clear(FT81x_COLOR_RGB(0, 0, 0));
+    FT81x::drawBitmap(0, 0, 0, 160, 160, 3);
+    FT81x::swap();
+
+    // waitForKeyPress();
 }
 
-void loop()
-{
-#ifdef BENCHMARK_AFTER_CYCLES
-    uint64_t start = millis();
-#endif
-
-    for(;;) {
-        ppu.ppuStep();
+void loop() {
+    while (true) {
         CPU::cpuStep();
+        ppu.ppuStep();
+    }
+}
 
-#ifdef BENCHMARK_AFTER_CYCLES
-        if (CPU::totalCycles > BENCHMARK_AFTER_CYCLES) {
-            uint64_t time = millis() - start;
-            uint64_t hz = 1000 * CPU::totalCycles / time;
-            Serial.printf("Emulated %lu Hz\n", hz);
-            for (;;) {}
-        }
-#endif
+void waitForKeyPress() {
+    Serial.println("\nPress a key to continue\n");
+    while (!Serial.available()) {}
+    while (Serial.available()) {
+        Serial.read();
     }
 }

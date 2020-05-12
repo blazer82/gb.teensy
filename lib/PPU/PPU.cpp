@@ -22,10 +22,7 @@
 #include "PPU.h"
 #include "CPU.h"
 #include "Memory.h"
-
-#ifdef DISPLAY_ENABLED
-#include "Display.h"
-#endif
+#include "FT81x.h"
 
 #define COLOR1 0x0000
 #define COLOR2 0x4BC4
@@ -35,26 +32,20 @@
 uint16_t *lines[2];
 uint64_t ticks = 0;
 uint8_t originX, originY, lcdc, lcdStatus;
-uint16_t offsetX, offsetY;
 
 PPU::PPU() {
-    //Allocate memory for the pixel buffers
+    // Allocate memory for the pixel buffers
     for (int i = 0; i < 2; i++) {
-        lines[i] = (uint16_t*) malloc(320 * sizeof(uint16_t));
-        memset(lines[i], 0, 320 * sizeof(uint16_t));
+        lines[i] = (uint16_t*) malloc(160 * sizeof(uint16_t));
+        memset(lines[i], 0, 160 * sizeof(uint16_t));
     }
 
-    // Init offsets
-    offsetX = (320 - 160) / 2;
-    offsetY = (240 - 144) / 2;
+    //FT81x::init();
 
-#ifdef DISPLAY_ENABLED
-    // Start display device
-    display = Display();
-    display.begin();
-    display.setRotation(1);
-    display.fillScreen(ILI9341_BLACK);
-#endif
+    //FT81x::begin();
+    //FT81x::clear(FT81x_COLOR_RGB(0, 0, 0));
+    //FT81x::drawBitmap(0, 0, 0, 160, 160, 3);
+    //FT81x::swap();
 
     CPU::cpuEnabled = 1;
 }
@@ -149,9 +140,7 @@ void PPU::ppuStep() {
                     sendingLine = calculatingLine;
                     calculatingLine = (calculatingLine == 0) ? 1 : 0;
 
-#ifdef DISPLAY_ENABLED
-                    display.hLine(y + offsetY, offsetX, lines[sendingLine]);
-#endif
+                    FT81x::writeGRAM(y * 320, 160, lines[sendingLine]);
 
                     Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
                 }
