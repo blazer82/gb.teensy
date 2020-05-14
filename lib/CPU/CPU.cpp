@@ -139,7 +139,7 @@ uint16_t CPU::readNn()
     return n1 | (n2 << 8);
 }
 
-void CPU::pushStack(uint16_t data) {
+void CPU::pushStack(const uint16_t data) {
     SP--;
     Memory::writeByte(SP, data >> 8);
     SP--;

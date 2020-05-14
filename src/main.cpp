@@ -47,7 +47,7 @@ void setup() {
     Serial.printf("REG_VCYCLE %i\n", FT81x::read16(FT81x_REG_VCYCLE));
     Serial.printf("REG_VSIZE %i\n", FT81x::read16(FT81x_REG_VSIZE));
 
-    // waitForKeyPress();
+    waitForKeyPress();
     FT81x::begin();
     FT81x::clear(FT81x_COLOR_RGB(0, 0, 0));
     FT81x::drawBitmap(0, 0, 0, 160, 160, 3);

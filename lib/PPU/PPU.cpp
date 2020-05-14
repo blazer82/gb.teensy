@@ -50,7 +50,7 @@ PPU::PPU() {
     CPU::cpuEnabled = 1;
 }
 
-void PPU::getBackgroundForLine(uint8_t y, uint16_t *line, uint8_t originX, uint8_t originY) {
+void PPU::getBackgroundForLine(const uint8_t y, uint16_t *line, const uint8_t originX, const uint8_t originY) {
     memset(line, 0x33, sizeof(uint16_t) * 160);
     uint8_t tileIndex, tileLineU, tileLineL;
 
@@ -68,7 +68,7 @@ void PPU::getBackgroundForLine(uint8_t y, uint16_t *line, uint8_t originX, uint8
     }
 }
 
-void PPU::getSpritesForLine(uint8_t y, uint16_t *line) {
+void PPU::getSpritesForLine(const uint8_t y, uint16_t *line) {
     uint8_t spritePosX, spritePosY;
     uint8_t tileIndex, attributes, tileLineU, tileLineL, pixel;
     int16_t spriteLineY, x;

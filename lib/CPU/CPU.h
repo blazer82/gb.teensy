@@ -30,7 +30,7 @@ class CPU
     protected:
         static uint8_t readOp();
         static uint16_t readNn();
-        static void pushStack(uint16_t data);
+        static void pushStack(const uint16_t data);
         static uint16_t popStack();
     private:
 };

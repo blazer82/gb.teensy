@@ -29,7 +29,7 @@ uint8_t romBank = 0;
 // TODO: Maybe switch to compile-time allocation
 uint8_t *Memory::memory = (uint8_t*) malloc((0xFFFF - 0x8000 + 1) * sizeof(uint8_t));
 
-void Memory::writeByteInternal(unsigned int location, uint8_t data, bool internal)
+void Memory::writeByteInternal(const unsigned int location, const uint8_t data, const bool internal)
 {
     uint16_t d;
 
@@ -100,7 +100,7 @@ void Memory::writeByteInternal(unsigned int location, uint8_t data, bool interna
     }
 }
 
-void Memory::writeByte(unsigned int location, uint8_t data) {
+void Memory::writeByte(const unsigned int location, const uint8_t data) {
     writeByteInternal(location, data, false);
 }
 
@@ -119,7 +119,7 @@ uint8_t Memory::readByte(unsigned int location)
     }
 }
 
-void Memory::interrupt(uint8_t flag) {
+void Memory::interrupt(const uint8_t flag) {
     writeByte(MEM_IRQ_FLAG, readByte(MEM_IRQ_FLAG) | flag);
 }
 

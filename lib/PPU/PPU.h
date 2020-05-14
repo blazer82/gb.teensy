@@ -26,8 +26,8 @@ class PPU
         PPU();
         void ppuStep();
     protected:
-        void getBackgroundForLine(uint8_t y, uint16_t *line, uint8_t originX, uint8_t originY);
-        void getSpritesForLine(uint8_t y, uint16_t *line);
+        void getBackgroundForLine(const uint8_t y, uint16_t *line, const uint8_t originX, const uint8_t originY);
+        void getSpritesForLine(const uint8_t y, uint16_t *line);
         void mapColorsForLine(uint16_t *line);
     private:
 };

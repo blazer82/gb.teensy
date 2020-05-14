@@ -54,11 +54,11 @@ class Memory
 
         static void initMemory();
 
-        static void writeByte(unsigned int location, uint8_t data);
-        static void writeByteInternal(unsigned int location, uint8_t data, bool internal);
-        static uint8_t readByte(unsigned int location);
+        static void writeByte(const unsigned int location, const uint8_t data);
+        static void writeByteInternal(const unsigned int location, const uint8_t data, const bool internal);
+        static uint8_t readByte(const unsigned int location);
 
-        static void interrupt(uint8_t flag);
+        static void interrupt(const uint8_t flag);
     protected:
     private:
 };

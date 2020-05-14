@@ -5,5 +5,5 @@
 class Cartridge
 {
     public:
-        static uint8_t cartridge[0x8000];
+        static const uint8_t cartridge[0x8000];
 };
