@@ -29,26 +29,9 @@
 #define COLOR3 0x968B
 #define COLOR4 0xFFFF
 
-uint16_t *lines[2];
-uint64_t ticks = 0;
-uint8_t originX, originY, lcdc, lcdStatus;
-
-PPU::PPU() {
-    // Allocate memory for the pixel buffers
-    for (int i = 0; i < 2; i++) {
-        lines[i] = (uint16_t*) malloc(160 * sizeof(uint16_t));
-        memset(lines[i], 0, 160 * sizeof(uint16_t));
-    }
-
-    //FT81x::init();
-
-    //FT81x::begin();
-    //FT81x::clear(FT81x_COLOR_RGB(0, 0, 0));
-    //FT81x::drawBitmap(0, 0, 0, 160, 160, 3);
-    //FT81x::swap();
-
-    CPU::cpuEnabled = 1;
-}
+uint16_t PPU::lines[2][160] = {{0}, {0}};
+uint64_t PPU::ticks = 0;
+uint8_t PPU::originX = 0, PPU::originY = 0, PPU::lcdc = 0, PPU::lcdStatus = 0;
 
 void PPU::getBackgroundForLine(const uint8_t y, uint16_t *line, const uint8_t originX, const uint8_t originY) {
     memset(line, 0x33, sizeof(uint16_t) * 160);
@@ -132,15 +115,10 @@ void PPU::ppuStep() {
 
                     mapColorsForLine(lines[calculatingLine]);
 
-                    // finish sending line
-                    /*if (sendingLine != -1) {
-                        send_line_finish(spi);
-                    }*/
-
                     sendingLine = calculatingLine;
                     calculatingLine = (calculatingLine == 0) ? 1 : 0;
 
-                    FT81x::writeGRAM(y * 320, 160, lines[sendingLine]);
+                    FT81x::writeGRAM(y * 320, 320, (uint8_t *) lines[sendingLine]);
 
                     Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
                 }

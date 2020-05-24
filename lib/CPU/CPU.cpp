@@ -35,12 +35,12 @@
  * Registers
  */
 
-uint16_t AF = 0x01B0; // AAAAAAAAZNHCxxxx
-uint16_t BC = 0x0013; // BBBBBBBBCCCCCCCC
-uint16_t DE = 0x00D8; // DDDDDDDDEEEEEEEE
-uint16_t HL = 0x014D; // HHHHHHHHLLLLLLLL
-uint16_t SP = 0xFFFE; // Stack Pointer
-uint16_t PC = PC_START; // Program Counter
+uint16_t CPU::AF = 0x01B0;  // AAAAAAAAZNHCxxxx
+uint16_t CPU::BC = 0x0013;  // BBBBBBBBCCCCCCCC
+uint16_t CPU::DE = 0x00D8;  // DDDDDDDDEEEEEEEE
+uint16_t CPU::HL = 0x014D;  // HHHHHHHHLLLLLLLL
+uint16_t CPU::SP = 0xFFFE;  // Stack Pointer
+uint16_t CPU::PC = PC_START;  // Program Counter
 
 /**
  * Compiler macros
@@ -99,25 +99,22 @@ volatile bool CPU::cpuEnabled = false;
 volatile uint64_t CPU::totalCycles = 0;
 
 // Init OP
-uint8_t op = 0x00;
+uint8_t CPU::op = 0x00;
 
 // Init IME
-bool IME = 0;
+bool CPU::IME = 0;
 
 // Virtual HALT
-bool halted = 0;
-
-// Define benchmark and debugging options
-double start, stop;
+bool CPU::halted = 0;
 
 // IRQ control
-uint8_t enableIRQ = 0, disableIRQ = 0;
+uint8_t CPU::enableIRQ = 0, CPU::disableIRQ = 0;
 
 // Divider interval
-uint8_t divider = 0;
+uint8_t CPU::divider = 0;
 
 // Timer control
-uint8_t timerA = 0, timerB = 0xFF;
+uint8_t CPU::timerA = 0, CPU::timerB = 0xFF;
 
 // Debug variables
 #ifdef DEBUG_AFTER_CYCLE
@@ -154,7 +151,7 @@ uint16_t CPU::popStack() {
     return (n2 << 8) | n1;
 }
 
-void dumpRegister() {
+/*void dumpRegister() {
     Serial.printf("AF: %04x, BC: %04x, DE: %04x, HL: %04x, SP: %04x\n", AF, BC, DE, HL, SP);
 }
 
@@ -163,11 +160,11 @@ void dumpStack() {
         Serial.printf("%02x ", Memory::readByte(p));
     }
     Serial.printf("\n");
-}
+}*/
 
-void stopAndRestart() {
+void CPU::stopAndRestart() {
     for(;;) {
-        Serial.printf("Cycles: %llu\n", CPU::totalCycles);
+        Serial.printf("Cycles: %llu\n", totalCycles);
         Serial.printf("Restarting in %d seconds...\n", 10);
         Serial.printf("Halting now.\n");
     }

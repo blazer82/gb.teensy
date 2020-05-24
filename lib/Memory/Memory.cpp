@@ -23,11 +23,10 @@
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-bool mbc1_mode = 0;
-uint8_t romBank = 0;
+bool Memory::mbc1_mode = 0;
+uint8_t Memory::romBank = 0;
 
-// TODO: Maybe switch to compile-time allocation
-uint8_t *Memory::memory = (uint8_t*) malloc((0xFFFF - 0x8000 + 1) * sizeof(uint8_t));
+uint8_t Memory::memory[32768] = {0};
 
 void Memory::writeByteInternal(const unsigned int location, const uint8_t data, const bool internal)
 {
@@ -125,7 +124,7 @@ void Memory::interrupt(const uint8_t flag) {
 
 void Memory::initMemory() {
     // Reset memory to zero
-    memset(memory, 0, 0xFFFF - 0x8000 + 1);
+    // memset(memory, 0, 0xFFFF - 0x8000 + 1);
 
     // Init joypad flags
     writeByteInternal(MEM_JOYPAD, 0x2F, true);

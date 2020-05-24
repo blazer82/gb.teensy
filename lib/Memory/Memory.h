@@ -49,16 +49,18 @@
 
 class Memory
 {
-    public:
-        static uint8_t *memory;
+public:
+    static void initMemory();
 
-        static void initMemory();
+    static void writeByte(const unsigned int location, const uint8_t data);
+    static void writeByteInternal(const unsigned int location, const uint8_t data, const bool internal);
+    static uint8_t readByte(const unsigned int location);
 
-        static void writeByte(const unsigned int location, const uint8_t data);
-        static void writeByteInternal(const unsigned int location, const uint8_t data, const bool internal);
-        static uint8_t readByte(const unsigned int location);
+    static void interrupt(const uint8_t flag);
 
-        static void interrupt(const uint8_t flag);
-    protected:
-    private:
+protected:
+private:
+    static uint8_t memory[32768];
+    static bool mbc1_mode;
+    static uint8_t romBank;
 };

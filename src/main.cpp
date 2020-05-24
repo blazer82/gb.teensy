@@ -18,12 +18,13 @@
 
 #include <Arduino.h>
 #include <FT81x.h>
+#include <Memory.h>
 #include <CPU.h>
 #include <PPU.h>
 
 void waitForKeyPress();
 
-static PPU ppu;
+// static PPU ppu;
 
 void setup() {
     Serial.begin(9600);
@@ -32,7 +33,7 @@ void setup() {
 
     waitForKeyPress();
 
-    ppu = PPU();
+    // ppu = PPU();
 
     Serial.println("Enable display");
     FT81x::init();
@@ -54,12 +55,15 @@ void setup() {
     FT81x::swap();
 
     // waitForKeyPress();
+
+    Memory::initMemory();
+    CPU::cpuEnabled = 1;
 }
 
 void loop() {
     while (true) {
         CPU::cpuStep();
-        ppu.ppuStep();
+        PPU::ppuStep();
     }
 }
 

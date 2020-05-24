@@ -22,15 +22,47 @@
 
 class CPU
 {
-    public:
-        static volatile bool cpuEnabled;
-        static volatile uint64_t totalCycles;
+public:
+    static volatile bool cpuEnabled;
+    static volatile uint64_t totalCycles;
 
-        static void cpuStep();
-    protected:
-        static uint8_t readOp();
-        static uint16_t readNn();
-        static void pushStack(const uint16_t data);
-        static uint16_t popStack();
-    private:
+    static void cpuStep();
+
+protected:
+    static uint8_t readOp();
+    static uint16_t readNn();
+    static void pushStack(const uint16_t data);
+    static uint16_t popStack();
+
+private:
+    // Registers
+    static uint16_t AF;
+    static uint16_t BC;
+    static uint16_t DE;
+    static uint16_t HL;
+    static uint16_t SP;
+    static uint16_t PC;
+
+    // Init OP
+    static uint8_t op;
+
+    // Init IME
+    static bool IME;
+
+    // Virtual HALT
+    static bool halted;
+
+    // Define benchmark and debugging options
+    static double start, stop;
+
+    // IRQ control
+    static uint8_t enableIRQ, disableIRQ;
+
+    // Divider interval
+    static uint8_t divider;
+
+    // Timer control
+    static uint8_t timerA, timerB;
+
+    static void stopAndRestart();
 };
