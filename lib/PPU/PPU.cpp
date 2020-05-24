@@ -29,12 +29,12 @@
 #define COLOR3 0x968B
 #define COLOR4 0xFFFF
 
-uint16_t PPU::lines[2][160] = {{0}, {0}};
+uint16_t PPU::frames[2][160 * 144] = {{0}, {0}};
 uint64_t PPU::ticks = 0;
 uint8_t PPU::originX = 0, PPU::originY = 0, PPU::lcdc = 0, PPU::lcdStatus = 0;
 
-void PPU::getBackgroundForLine(const uint8_t y, uint16_t *line, const uint8_t originX, const uint8_t originY) {
-    memset(line, 0x33, sizeof(uint16_t) * 160);
+void PPU::getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t originX, const uint8_t originY) {
+    memset(frame + y * 160, 0x33, sizeof(uint16_t) * 160);
     uint8_t tileIndex, tileLineU, tileLineL;
 
     uint8_t tilePosY = floor(y / 8) * 8;
@@ -46,12 +46,12 @@ void PPU::getBackgroundForLine(const uint8_t y, uint16_t *line, const uint8_t or
         tileLineU = Memory::readByte(MEM_VRAM_TILES + tileIndex * 16 + tileLineY * 2 + 1);
 
         for (int8_t c = 0; c < 8; c++) {
-            line[i * 8 + c] = (((tileLineU >> (7 - c)) << 1) & 0x2) | ((tileLineL >> (7 - c)) & 0x1);
+            frame[y * 160 + i * 8 + c] = (((tileLineU >> (7 - c)) << 1) & 0x2) | ((tileLineL >> (7 - c)) & 0x1);
         }
     }
 }
 
-void PPU::getSpritesForLine(const uint8_t y, uint16_t *line) {
+void PPU::getSpritesForLine(const uint8_t y, uint16_t *frame) {
     uint8_t spritePosX, spritePosY;
     uint8_t tileIndex, attributes, tileLineU, tileLineL, pixel;
     int16_t spriteLineY, x;
@@ -70,9 +70,9 @@ void PPU::getSpritesForLine(const uint8_t y, uint16_t *line) {
             for (int8_t c = 0; c < 8; c++) {
                 x = spritePosX + c;
                 if (x >= 0) {
-                    if ((attributes & 0x80) == 0 || line[x] == 0) {
+                    if ((attributes & 0x80) == 0 || frame[y * 160 + x] == 0) {
                         pixel = (((tileLineU >> (7 - c)) << 1) & 0x2) | ((tileLineL >> (7 - c)) & 0x1);
-                        if (pixel != 0) line[x] = pixel;
+                        if (pixel != 0) frame[y * 160 + x] = pixel;
                     }
                 }
             }
@@ -80,16 +80,16 @@ void PPU::getSpritesForLine(const uint8_t y, uint16_t *line) {
     }
 }
 
-void PPU::mapColorsForLine(uint16_t *line) {
-    for (uint8_t i = 0; i < 160; i++) {
-        line[i] = (line[i] == 0x3) ? COLOR1 : ((line[i] == 0x2) ? COLOR2 : ((line[i] == 0x1) ? COLOR3 : COLOR4));
+void PPU::mapColorsForFrame(uint16_t *frame) {
+    for (uint16_t i = 0; i < 160 * 144; i++) {
+        frame[i] = (frame[i] == 0x3) ? COLOR1 : ((frame[i] == 0x2) ? COLOR2 : ((frame[i] == 0x1) ? COLOR3 : COLOR4));
     }
 }
 
 void PPU::ppuStep() {
     uint8_t y = Memory::readByte(MEM_LCD_Y) % 152;
-    int sendingLine = -1;
-    int calculatingLine = 0;
+    static uint8_t sendingFrame = 1;
+    static uint8_t calculatingFrame = 0;
 
     for (; ticks < CPU::totalCycles; ticks++) {
         if (ticks % 116 == 0) {
@@ -106,25 +106,25 @@ void PPU::ppuStep() {
                 if (y < 144) {
                     // calculate line
                     if ((lcdc & 0x01) == 0x01) {
-                        getBackgroundForLine(y, lines[calculatingLine], originX, originY);
+                        getBackgroundForLine(y, frames[calculatingFrame], originX, originY);
                     }
 
                     if ((lcdc & 0x02) == 0x02) {
-                        getSpritesForLine(y, lines[calculatingLine]);
+                        getSpritesForLine(y, frames[calculatingFrame]);
                     }
-
-                    mapColorsForLine(lines[calculatingLine]);
-
-                    sendingLine = calculatingLine;
-                    calculatingLine = (calculatingLine == 0) ? 1 : 0;
-
-                    FT81x::writeGRAM(y * 320, 320, (uint8_t *) lines[sendingLine]);
 
                     Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
                 }
                 else if (y == 144) {
                     Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
                     Memory::interrupt(IRQ_VBLANK);
+
+                    mapColorsForFrame(frames[calculatingFrame]);
+
+                    sendingFrame = calculatingFrame;
+                    calculatingFrame = !calculatingFrame;
+
+                    FT81x::writeGRAM(0, 2 * 160 * 102, (uint8_t *) frames[sendingFrame]);
                 }
             }
             else {

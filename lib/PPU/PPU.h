@@ -27,13 +27,13 @@ public:
     static void ppuStep();
 
 protected:
-    static uint16_t lines[2][160];
+    static uint16_t frames[2][160 * 144];
     static uint64_t ticks;
     static uint8_t originX, originY, lcdc, lcdStatus;
 
-    static void getBackgroundForLine(const uint8_t y, uint16_t *line, const uint8_t originX, const uint8_t originY);
-    static void getSpritesForLine(const uint8_t y, uint16_t *line);
-    static void mapColorsForLine(uint16_t *line);
+    static void getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t originX, const uint8_t originY);
+    static void getSpritesForLine(const uint8_t y, uint16_t *frame);
+    static void mapColorsForFrame(uint16_t *frame);
 
 private:
 };
