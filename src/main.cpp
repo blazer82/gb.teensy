@@ -22,6 +22,8 @@
 #include <Memory.h>
 #include <PPU.h>
 
+// #define BENCHMARK_AFTER_CYCLES 10000000
+
 void waitForKeyPress();
 
 // static PPU ppu;
@@ -51,7 +53,7 @@ void setup() {
     waitForKeyPress();
     FT81x::begin();
     FT81x::clear(FT81x_COLOR_RGB(0, 0, 0));
-    FT81x::drawBitmap(0, 0, 0, 160, 160, 3);
+    FT81x::drawBitmap(0, 0, 24, 160, 144, 3);
     FT81x::swap();
 
     // waitForKeyPress();
@@ -61,9 +63,21 @@ void setup() {
 }
 
 void loop() {
+#ifdef BENCHMARK_AFTER_CYCLES
+    uint64_t start = millis();
+#endif
     while (true) {
         CPU::cpuStep();
         PPU::ppuStep();
+#ifdef BENCHMARK_AFTER_CYCLES
+        if (CPU::totalCycles > BENCHMARK_AFTER_CYCLES) {
+            uint64_t time = millis() - start;
+            uint64_t hz = 1000 * CPU::totalCycles / time;
+            Serial.printf("Emulated %lu Hz\n", hz);
+            for (;;) {
+            }
+        }
+#endif
     }
 }
 

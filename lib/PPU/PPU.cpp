@@ -125,7 +125,7 @@ void PPU::ppuStep() {
                     sendingFrame = calculatingFrame;
                     calculatingFrame = !calculatingFrame;
 
-                    FT81x::writeGRAM(0, 2 * 160 * 102, (uint8_t *)frames[sendingFrame]);
+                    FT81x::writeGRAM(0, 2 * 160 * 144, (uint8_t *)frames[sendingFrame]);
                 }
             } else {
                 Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
