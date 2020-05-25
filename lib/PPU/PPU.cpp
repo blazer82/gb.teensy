@@ -1,28 +1,30 @@
 /**
  * gb.teensy Emulation Software
  * Copyright (C) 2020  Raphael Stäbler
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
+#include "PPU.h"
+
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "PPU.h"
+
 #include "CPU.h"
-#include "Memory.h"
 #include "FT81x.h"
+#include "Memory.h"
 
 #define COLOR1 0x0000
 #define COLOR2 0x4BC4
@@ -114,8 +116,7 @@ void PPU::ppuStep() {
                     }
 
                     Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
-                }
-                else if (y == 144) {
+                } else if (y == 144) {
                     Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
                     Memory::interrupt(IRQ_VBLANK);
 
@@ -124,10 +125,9 @@ void PPU::ppuStep() {
                     sendingFrame = calculatingFrame;
                     calculatingFrame = !calculatingFrame;
 
-                    FT81x::writeGRAM(0, 2 * 160 * 102, (uint8_t *) frames[sendingFrame]);
+                    FT81x::writeGRAM(0, 2 * 160 * 102, (uint8_t *)frames[sendingFrame]);
                 }
-            }
-            else {
+            } else {
                 Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
             }
         }

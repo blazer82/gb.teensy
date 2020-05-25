@@ -1,0 +1,7 @@
+BasedOnStyle: Google
+
+Language: Cpp
+
+ColumnLimit: 160
+IndentWidth: 4
+AlignConsecutiveMacros: true
