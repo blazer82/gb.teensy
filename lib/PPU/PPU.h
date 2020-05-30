@@ -19,11 +19,11 @@
 #pragma once
 
 #include <sys/_stdint.h>
+#include <FT81x.h>
 
 class PPU {
    public:
-    // PPU();
-    static void ppuStep();
+    static void ppuStep(FT81x &ft81x);
 
    protected:
     static uint16_t frames[2][160 * 144];

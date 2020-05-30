@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include "CPU.h"
-#include "FT81x.h"
 #include "Memory.h"
 
 #define COLOR1 0x0000
@@ -88,7 +87,7 @@ void PPU::mapColorsForFrame(uint16_t *frame) {
     }
 }
 
-void PPU::ppuStep() {
+void PPU::ppuStep(FT81x &ft81x) {
     uint8_t y = Memory::readByte(MEM_LCD_Y) % 152;
     static uint8_t sendingFrame = 1;
     static uint8_t calculatingFrame = 0;
@@ -125,7 +124,7 @@ void PPU::ppuStep() {
                     sendingFrame = calculatingFrame;
                     calculatingFrame = !calculatingFrame;
 
-                    FT81x::writeGRAM(0, 2 * 160 * 144, (uint8_t *)frames[sendingFrame]);
+                    ft81x.writeGRAM(0, 2 * 160 * 144, (uint8_t *)frames[sendingFrame]);
                 }
             } else {
                 Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);

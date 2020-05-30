@@ -26,7 +26,7 @@
 
 void waitForKeyPress();
 
-// static PPU ppu;
+FT81x ft81x;
 
 void setup() {
     Serial.begin(9600);
@@ -35,26 +35,24 @@ void setup() {
 
     waitForKeyPress();
 
-    // ppu = PPU();
-
     Serial.println("Enable display");
-    FT81x::init();
+    ft81x.begin();
 
     delay(100);
 
-    Serial.printf("REG_ID %x\n", FT81x::read8(FT81x_REG_ID));
+    Serial.printf("REG_ID %x\n", ft81x.read8(FT81x_REG_ID));
 
-    Serial.printf("REG_HCYCLE %i\n", FT81x::read16(FT81x_REG_HCYCLE));
-    Serial.printf("REG_HSIZE %i\n", FT81x::read16(FT81x_REG_HSIZE));
+    Serial.printf("REG_HCYCLE %i\n", ft81x.read16(FT81x_REG_HCYCLE));
+    Serial.printf("REG_HSIZE %i\n", ft81x.read16(FT81x_REG_HSIZE));
 
-    Serial.printf("REG_VCYCLE %i\n", FT81x::read16(FT81x_REG_VCYCLE));
-    Serial.printf("REG_VSIZE %i\n", FT81x::read16(FT81x_REG_VSIZE));
+    Serial.printf("REG_VCYCLE %i\n", ft81x.read16(FT81x_REG_VCYCLE));
+    Serial.printf("REG_VSIZE %i\n", ft81x.read16(FT81x_REG_VSIZE));
 
     waitForKeyPress();
-    FT81x::begin();
-    FT81x::clear(FT81x_COLOR_RGB(0, 0, 0));
-    FT81x::drawBitmap(0, 0, 24, 160, 144, 3);
-    FT81x::swap();
+    ft81x.beginDisplayList();
+    ft81x.clear(FT81x_COLOR_RGB(0, 0, 0));
+    ft81x.drawBitmap(0, 0, 24, 160, 144, 3);
+    ft81x.swapScreen();
 
     // waitForKeyPress();
 
@@ -68,7 +66,7 @@ void loop() {
 #endif
     while (true) {
         CPU::cpuStep();
-        PPU::ppuStep();
+        PPU::ppuStep(ft81x);
 #ifdef BENCHMARK_AFTER_CYCLES
         if (CPU::totalCycles > BENCHMARK_AFTER_CYCLES) {
             uint64_t time = millis() - start;
