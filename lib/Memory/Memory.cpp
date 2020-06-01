@@ -21,6 +21,7 @@
 #include <Arduino.h>
 #include <string.h>
 
+#include "CPU.h"
 #include "Cartridge.h"
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -28,7 +29,7 @@
 bool Memory::mbc1_mode = 0;
 uint8_t Memory::romBank = 0;
 
-uint8_t Memory::memory[32768] = {0};
+uint8_t Memory::memory[0x8000] = {0};
 
 void Memory::writeByteInternal(const unsigned int location, const uint8_t data, const bool internal) {
     uint16_t d;
@@ -82,10 +83,13 @@ void Memory::writeByteInternal(const unsigned int location, const uint8_t data, 
                 Serial.printf("ROM bank set to %i\n", romBank);
             } else if (mbc1_mode == 0 && location >= MEM_ROM_BANK && location < 0x6000) {
                 Serial.printf("Attempted to set ROM addressing to %#x TODO: implement!\n", data & 0x3);
+                CPU::stopAndRestart();
             } else if (location >= MEM_VRAM_TILES) {
                 memory[location - 0x8000] = data;
             } else {
                 // Illegal operation
+                Serial.println("Illegal operation on memory!");
+                CPU::stopAndRestart();
             }
 
             break;
@@ -94,7 +98,7 @@ void Memory::writeByteInternal(const unsigned int location, const uint8_t data, 
 
 void Memory::writeByte(const unsigned int location, const uint8_t data) { writeByteInternal(location, data, false); }
 
-uint8_t Memory::readByte(unsigned int location) {
+uint8_t Memory::readByte(const unsigned int location) {
     if (location < MEM_VRAM_TILES) {
         if (location >= MEM_ROM_BANK) {
             return Cartridge::cartridge[location + (0x4000 * romBank)];

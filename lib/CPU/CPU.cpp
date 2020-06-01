@@ -149,22 +149,21 @@ uint16_t CPU::popStack() {
     return (n2 << 8) | n1;
 }
 
-/*void dumpRegister() {
-    Serial.printf("AF: %04x, BC: %04x, DE: %04x, HL: %04x, SP: %04x\n", AF, BC, DE, HL, SP);
-}
+void CPU::dumpRegister() { Serial.printf("AF: %04x, BC: %04x, DE: %04x, HL: %04x, SP: %04x, PC: %04x\n", AF, BC, DE, HL, SP, PC); }
 
-void dumpStack() {
+void CPU::dumpStack() {
     for (uint16_t p = 0xCFFF; p >= SP; p--) {
         Serial.printf("%02x ", Memory::readByte(p));
     }
     Serial.printf("\n");
-}*/
+}
 
 void CPU::stopAndRestart() {
-    for (;;) {
-        Serial.printf("Cycles: %llu\n", totalCycles);
-        Serial.printf("Restarting in %d seconds...\n", 10);
-        Serial.printf("Halting now.\n");
+    Serial.printf("Cycles: %llu\n", totalCycles);
+    dumpRegister();
+    Serial.printf("Halting now.\n");
+    while (true) {
+        __asm__ volatile("nop");
     }
 }
 

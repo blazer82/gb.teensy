@@ -26,6 +26,7 @@ class CPU {
     static volatile uint64_t totalCycles;
 
     static void cpuStep();
+    static void stopAndRestart();
 
    protected:
     static uint8_t readOp();
@@ -63,5 +64,7 @@ class CPU {
     // Timer control
     static uint8_t timerA, timerB;
 
-    static void stopAndRestart();
+    // Debug
+    static void dumpRegister();
+    static void dumpStack();
 };
