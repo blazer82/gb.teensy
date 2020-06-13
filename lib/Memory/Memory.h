@@ -28,6 +28,7 @@
 #define MEM_LCD_SCROLL_Y  0xFF42
 #define MEM_LCD_SCROLL_X  0xFF43
 #define MEM_LCD_Y         0xFF44
+#define MEM_LCD_YC        0xFF45
 #define MEM_DMA           0xFF46
 #define MEM_DIVIDER       0xFF04
 #define MEM_TIMA          0xFF05
@@ -40,12 +41,14 @@
 #define MEM_RAM_INTERNAL  0xC000
 #define MEM_ROM_BANK      0x4000
 
-#define IRQ_VBLANK 0x01
-#define IRQ_TIMER  0x04
+#define IRQ_VBLANK   0x01
+#define IRQ_LCD_STAT 0x02
+#define IRQ_TIMER    0x04
 
-#define PC_START  0x0100
-#define PC_VBLANK 0x0040
-#define PC_TIMER  0x0050
+#define PC_START    0x0100
+#define PC_VBLANK   0x0040
+#define PC_LCD_STAT 0x0048
+#define PC_TIMER    0x0050
 
 class Memory {
    public:

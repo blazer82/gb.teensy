@@ -255,6 +255,15 @@ void CPU::cpuStep() {
                 pushStack(PC);
                 PC = PC_VBLANK;
             }
+        } else if ((interrupt & IRQ_LCD_STAT) == IRQ_LCD_STAT) {
+            IME = 0;
+            if (halted) {
+                halted = 0;
+            } else {
+                Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_LCD_STAT));
+                pushStack(PC);
+                PC = PC_LCD_STAT;
+            }
         } else if ((interrupt & IRQ_TIMER) == IRQ_TIMER) {
             IME = 0;
             if (halted) {
