@@ -40,6 +40,7 @@
 #define MEM_RAM_ECHO      0xE000
 #define MEM_RAM_INTERNAL  0xC000
 #define MEM_ROM_BANK      0x4000
+#define MEM_TITLE         0x0134
 
 #define IRQ_VBLANK   0x01
 #define IRQ_LCD_STAT 0x02
@@ -54,11 +55,13 @@ class Memory {
    public:
     static void initMemory();
 
-    static void writeByte(const unsigned int location, const uint8_t data);
-    static void writeByteInternal(const unsigned int location, const uint8_t data, const bool internal);
-    static uint8_t readByte(const unsigned int location);
+    static void writeByte(const uint16_t location, const uint8_t data);
+    static void writeByteInternal(const uint16_t location, const uint8_t data, const bool internal);
+    static uint8_t readByte(const uint16_t location);
 
     static void interrupt(const uint8_t flag);
+
+    static void getTitle(char* title);
 
    protected:
    private:

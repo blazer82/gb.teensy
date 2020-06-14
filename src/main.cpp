@@ -22,11 +22,11 @@
 #include <Memory.h>
 #include <PPU.h>
 
-// #define BENCHMARK_AFTER_CYCLES 10000000
-
 void waitForKeyPress();
 
 FT81x ft81x;
+
+static char* title;
 
 void setup() {
     Serial.begin(9600);
@@ -49,33 +49,40 @@ void setup() {
     Serial.printf("REG_VSIZE %i\n", ft81x.read16(FT81x_REG_VSIZE));
 
     waitForKeyPress();
-    ft81x.beginDisplayList();
-    ft81x.clear(FT81x_COLOR_RGB(0, 0, 0));
-    ft81x.drawBitmap(0, 0, 24, 160, 144, 3);
-    ft81x.swapScreen();
-
-    // waitForKeyPress();
 
     Memory::initMemory();
     CPU::cpuEnabled = 1;
+
+    Memory::getTitle(title);
+
+    ft81x.beginDisplayList();
+    ft81x.clear(FT81x_COLOR_RGB(0, 0, 0));
+    ft81x.drawText(10, 460, 16, FT81x_COLOR_RGB(255, 0, 255), 0, title);
+    ft81x.drawText(470, 460, 16, FT81x_COLOR_RGB(255, 0, 255), FT81x_OPT_RIGHTX, "Emulated speed: ...\0");
+    ft81x.drawBitmap(0, 0, 0, 160, 144, 3);
+    ft81x.swapScreen();
 }
 
 void loop() {
-#ifdef BENCHMARK_AFTER_CYCLES
     uint64_t start = millis();
-#endif
+
     while (true) {
         CPU::cpuStep();
         PPU::ppuStep(ft81x);
-#ifdef BENCHMARK_AFTER_CYCLES
-        if (CPU::totalCycles > BENCHMARK_AFTER_CYCLES) {
+
+        if ((CPU::totalCycles % 1000000) == 0) {
             uint64_t time = millis() - start;
             uint64_t hz = 1000 * CPU::totalCycles / time;
-            Serial.printf("Emulated %lu Hz\n", hz);
-            for (;;) {
-            }
+            uint8_t speed = hz / 10000;
+            char buff[21];
+            sprintf(buff, "Emulated speed: %d%%\0", speed);
+            ft81x.beginDisplayList();
+            ft81x.clear(FT81x_COLOR_RGB(0, 0, 0));
+            ft81x.drawText(10, 460, 16, FT81x_COLOR_RGB(255, 0, 255), 0, title);
+            ft81x.drawText(470, 460, 16, FT81x_COLOR_RGB(255, 0, 255), FT81x_OPT_RIGHTX, buff);
+            ft81x.drawBitmap(0, 0, 0, 160, 144, 3);
+            ft81x.swapScreen();
         }
-#endif
     }
 }
 
