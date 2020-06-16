@@ -45,11 +45,15 @@
 #define IRQ_VBLANK   0x01
 #define IRQ_LCD_STAT 0x02
 #define IRQ_TIMER    0x04
+#define IRQ_SERIAL   0x08
+#define IRQ_JOYPAD   0x10
 
 #define PC_START    0x0100
 #define PC_VBLANK   0x0040
 #define PC_LCD_STAT 0x0048
 #define PC_TIMER    0x0050
+#define PC_SERIAL   0x0058
+#define PC_JOYPAD   0x0060
 
 class Memory {
    public:

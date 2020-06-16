@@ -250,35 +250,35 @@ void CPU::cpuStep() {
 
     // Check for interrupts
     if (IME || halted) {
-        interrupt = Memory::readByte(MEM_IRQ_FLAG) & Memory::readByte(MEM_IRQ_ENABLE);
+        interrupt = Memory::readByte(MEM_IRQ_FLAG) & Memory::readByte(MEM_IRQ_ENABLE) & 0x1F;
 
-        if ((interrupt & IRQ_VBLANK) == IRQ_VBLANK) {
-            IME = 0;
-            if (halted) {
-                halted = 0;
-            } else {
-                Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_VBLANK));
-                pushStack(PC);
-                PC = PC_VBLANK;
+        if (interrupt) {
+            if (IME && !halted) {
+                IME = 0;
+                if ((interrupt & IRQ_VBLANK) == IRQ_VBLANK) {
+                    Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_VBLANK));
+                    pushStack(PC);
+                    PC = PC_VBLANK;
+                } else if ((interrupt & IRQ_LCD_STAT) == IRQ_LCD_STAT) {
+                    Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_LCD_STAT));
+                    pushStack(PC);
+                    PC = PC_LCD_STAT;
+                } else if ((interrupt & IRQ_TIMER) == IRQ_TIMER) {
+                    Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_TIMER));
+                    pushStack(PC);
+                    PC = PC_TIMER;
+                } else if ((interrupt & IRQ_SERIAL) == IRQ_SERIAL) {
+                    Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_SERIAL));
+                    pushStack(PC);
+                    PC = PC_SERIAL;
+                } else if ((interrupt & IRQ_JOYPAD) == IRQ_JOYPAD) {
+                    Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_JOYPAD));
+                    pushStack(PC);
+                    PC = PC_JOYPAD;
+                }
             }
-        } else if ((interrupt & IRQ_LCD_STAT) == IRQ_LCD_STAT) {
-            IME = 0;
-            if (halted) {
-                halted = 0;
-            } else {
-                Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_LCD_STAT));
-                pushStack(PC);
-                PC = PC_LCD_STAT;
-            }
-        } else if ((interrupt & IRQ_TIMER) == IRQ_TIMER) {
-            IME = 0;
-            if (halted) {
-                halted = 0;
-            } else {
-                Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_TIMER));
-                pushStack(PC);
-                PC = PC_TIMER;
-            }
+
+            halted = 0;
         }
     }
 
