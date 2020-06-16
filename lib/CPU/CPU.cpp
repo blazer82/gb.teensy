@@ -234,7 +234,8 @@ void CPU::cpuStep() {
         }
 
         const uint8_t newTimerCycles = timerCycles + cyclesDelta;
-        for (; timerCycles < newTimerCycles; timerCycles++) {
+        while (timerCycles < newTimerCycles) {
+            timerCycles++;
             if (timerCycles == timerTotalCycles) {
                 Memory::writeByteInternal(MEM_TIMA, Memory::readByte(MEM_TIMA) + 1, true);
 
@@ -284,7 +285,8 @@ void CPU::cpuStep() {
 
     // Update divider register
     const uint8_t newDivider = divider + cyclesDelta;
-    for (; divider < newDivider; divider++) {
+    while (divider < newDivider) {
+        divider++;
         if (divider == 61) {
             Memory::writeByteInternal(MEM_DIVIDER, Memory::readByte(MEM_DIVIDER) + 1, true);
         }
@@ -293,8 +295,8 @@ void CPU::cpuStep() {
 
     // Check if halted
     if (halted) {
-        cyclesDelta = 1;
-        totalCycles += cyclesDelta;  // In order for the timer to work properly
+        cyclesDelta = 1;  // In order for the timer to work properly
+        totalCycles += cyclesDelta;
         return;
     }
 
