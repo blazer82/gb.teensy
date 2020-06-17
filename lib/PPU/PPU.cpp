@@ -92,7 +92,8 @@ void PPU::ppuStep(FT81x &ft81x) {
     static uint8_t sendingFrame = 1;
     static uint8_t calculatingFrame = 0;
 
-    for (; ticks < CPU::totalCycles; ticks++) {
+    while (ticks < CPU::totalCycles) {
+        ticks++;
         const uint8_t cycleTicks = ticks % 114;
 
         switch (cycleTicks) {
