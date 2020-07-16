@@ -26,7 +26,7 @@ void waitForKeyPress();
 
 FT81x ft81x;
 
-static char* title;
+static char title[16];
 
 void setup() {
     Serial.begin(9600);
@@ -49,6 +49,8 @@ void setup() {
     Serial.printf("REG_VSIZE %i\n", ft81x.read16(FT81x_REG_VSIZE));
 
     waitForKeyPress();
+
+    Serial.println("Start Gameboy...");
 
     Memory::initMemory();
     CPU::cpuEnabled = 1;
@@ -75,7 +77,7 @@ void loop() {
             uint64_t hz = 1000 * CPU::totalCycles / time;
             uint8_t speed = hz / 10000;
             char buff[21];
-            sprintf(buff, "Emulated speed: %d%%\0", speed);
+            sprintf(buff, "Emulated speed: %d%%", speed);
             ft81x.beginDisplayList();
             ft81x.clear(FT81x_COLOR_RGB(0, 0, 0));
             ft81x.drawText(10, 460, 16, FT81x_COLOR_RGB(255, 0, 255), 0, title);
