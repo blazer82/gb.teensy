@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <sys/_stdint.h>
+#include <Arduino.h>
 
 #define MEM_IRQ_ENABLE    0xFFFF
 #define MEM_IRQ_FLAG      0xFF0F
