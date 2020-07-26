@@ -23,8 +23,9 @@
 #include <PPU.h>
 
 void waitForKeyPress();
+void printDiagnostics();
 
-FT81x ft81x;
+FT81x ft81x = FT81x(10, 9, 8, 7);
 
 static char title[16];
 
@@ -38,18 +39,9 @@ void setup() {
     Serial.println("Enable display");
     ft81x.begin();
 
-    delay(100);
+    printDiagnostics();
 
-    Serial.printf("REG_ID %x\n", ft81x.read8(FT81x_REG_ID));
-
-    Serial.printf("REG_HCYCLE %i\n", ft81x.read16(FT81x_REG_HCYCLE));
-    Serial.printf("REG_HSIZE %i\n", ft81x.read16(FT81x_REG_HSIZE));
-
-    Serial.printf("REG_VCYCLE %i\n", ft81x.read16(FT81x_REG_VCYCLE));
-    Serial.printf("REG_VSIZE %i\n", ft81x.read16(FT81x_REG_VSIZE));
-
-    waitForKeyPress();
-
+    Serial.println("");
     Serial.println("Start Gameboy...");
 
     Memory::initMemory();
@@ -95,4 +87,63 @@ void waitForKeyPress() {
     while (Serial.available()) {
         Serial.read();
     }
+}
+
+void printDiagnostics() {
+    Serial.print("SPI clock set to: ");
+    Serial.println(FT81x_SPI_CLOCK_SPEED);
+
+    Serial.println("");
+
+    Serial.println("Read chip ID...");
+
+    const uint32_t chipID = ft81x.read32(0x0C0000);
+
+    Serial.print("0x0C0000: ");
+    Serial.print(chipID & 0xFF, HEX);
+    Serial.println(" (supposed to be 0x8)");
+
+    Serial.print("0x0C0001: ");
+    Serial.print((chipID >> 8) & 0xFF, HEX);
+    Serial.println(" (supposed to be 0x12 or 0x13)");
+
+    Serial.print("0x0C0002: ");
+    Serial.print((chipID >> 16) & 0xFF, HEX);
+    Serial.println(" (supposed to be 0x1)");
+
+    Serial.print("0x0C0003: ");
+    Serial.print((chipID >> 24) & 0xFF, HEX);
+    Serial.println(" (supposed to be 0x0)");
+
+    Serial.println("");
+
+    Serial.println("Read FT81x configuration...");
+
+    Serial.print("REG_ID ");
+    Serial.print(ft81x.read8(FT81x_REG_ID), HEX);
+    Serial.println(" (supposed to be 0x7C)");
+
+    Serial.print("REG_HCYCLE ");
+    Serial.print(ft81x.read16(FT81x_REG_HCYCLE));
+    Serial.println(" (supposed to be 548)");
+
+    Serial.print("REG_HSIZE ");
+    Serial.print(ft81x.read16(FT81x_REG_HSIZE));
+    Serial.println(" (supposed to be 480)");
+
+    Serial.print("REG_VCYCLE ");
+    Serial.print(ft81x.read16(FT81x_REG_VCYCLE));
+    Serial.println(" (supposed to be 518)");
+
+    Serial.print("REG_VSIZE ");
+    Serial.print(ft81x.read16(FT81x_REG_VSIZE));
+    Serial.println(" (supposed to be 480)");
+
+    Serial.println("");
+
+    Serial.println("Read display parameters...");
+
+    Serial.print("Power mode: ");
+    Serial.print(ft81x.queryDisplay(ST7701_RDDPM), HEX);
+    Serial.println(" (supposed to be 0x9C)");
 }
