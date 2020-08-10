@@ -21,8 +21,27 @@
 #include <sys/_stdint.h>
 
 #define MEM_IRQ_ENABLE    0xFFFF
+
+// IF: Interrupt Flag
+// Bit 0:   V-Blank IRQ
+// Bit 1:   LCD STAT IRQ
+// Bit 2:   Timer IRQ
+// Bit 3:   Serial IRQ
+// Bit 4:   Joypad IRQ
 #define MEM_IRQ_FLAG      0xFF0F
+
+// P1/JOYP: Joypad Input
+// Button/Direction keys are muxed
+// All bits are active low
+// Bit 0:   Right or A
+// Bit 1:   Left  or B
+// Bit 2:   Up    or Select
+// Bit 3:   Down  or Start
+// Bit 4:   Select Direction Keys
+// Bit 5:   Select Button Keys
 #define MEM_JOYPAD        0xFF00
+
+// LCDC: LCD Control
 #define MEM_LCDC          0xFF40
 #define MEM_LCD_STATUS    0xFF41
 #define MEM_LCD_SCROLL_Y  0xFF42
@@ -61,9 +80,14 @@
 #define MEM_RAM_INTERNAL  0xC000
 #define MEM_ROM_BANK      0x4000
 
-#define IRQ_VBLANK 0x01
-#define IRQ_TIMER  0x04
+// IRQ Bits
+#define IRQ_VBLANK      0x01
+#define IRQ_LCD_STAT    0x02
+#define IRQ_TIMER       0x04
+#define IRQ_SERIAL      0x08
+#define IRQ_JOYPAD      0x16
 
+// Jump Vectors
 #define PC_START  0x0100
 #define PC_VBLANK 0x0040
 #define PC_TIMER  0x0050
