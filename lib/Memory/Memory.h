@@ -29,10 +29,31 @@
 #define MEM_LCD_SCROLL_X  0xFF43
 #define MEM_LCD_Y         0xFF44
 #define MEM_DMA           0xFF46
+
+// DIV: Divider Register
+// Incremented at a rate of 16384 Hz. 
+// All writes reset to 0x0
 #define MEM_DIVIDER       0xFF04
+
+// TIMA: Timer Counter
+// Incremented by clock frequency specified in TAC
+// When it overflows (>0xFF), reset to value in TMA
+// and generate an interrupt
 #define MEM_TIMA          0xFF05
+
+// TMA: Timer Modulo
+// Set TIMA to this value when TIMA overflows
 #define MEM_TMA           0xFF06
+
+// TAC: Timer Control
+// Bit 0-1  Input Clock Select
+//  0b00    4096 Hz
+//  0b01    262144 Hz
+//  0b10    65536 Hz
+//  0b11    16384 Hz
+// Bit 2:   Timer Stop (0=Stop, 1=Start)
 #define MEM_TIMER_CONTROL 0xFF07
+
 #define MEM_VRAM_MAP1     0x9800
 #define MEM_VRAM_MAP2     0x9C00
 #define MEM_VRAM_TILES    0x8000

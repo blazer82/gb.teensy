@@ -36,12 +36,35 @@
  * Registers
  */
 
-uint16_t CPU::AF = 0x01B0;    // AAAAAAAAZNHCxxxx
-uint16_t CPU::BC = 0x0013;    // BBBBBBBBCCCCCCCC
-uint16_t CPU::DE = 0x00D8;    // DDDDDDDDEEEEEEEE
-uint16_t CPU::HL = 0x014D;    // HHHHHHHHLLLLLLLL
-uint16_t CPU::SP = 0xFFFE;    // Stack Pointer
-uint16_t CPU::PC = PC_START;  // Program Counter
+// Accumulator and Flag Register
+// Bit 0 - 3:   Unused
+// Bit 4:       Carry Flag
+// Bit 5:       Half Carry Flag
+// Bit 6:       Add/Sub Flag
+// Bit 7:       Zero Flag
+// Bit 8 - 15:  Accumulator
+uint16_t CPU::AF = 0x01B0;
+
+// BC Register
+// Bit 0 - 7:   Gen. Purpose C Register
+// Bit 8 - 15:  Gen. Purpose B Register
+uint16_t CPU::BC = 0x0013;
+
+// DE Register
+// Bit 0 - 7:   Gen Purpose E Register
+// Bit 8 - 15:  Gen Purpose D Register
+uint16_t CPU::DE = 0x00D8; 
+
+// HL Register
+// Bit 0 - 7:   Gen Purpose L Register
+// Bit 8 - 15:  Gen Purpise H Register
+uint16_t CPU::HL = 0x014D;
+
+// Stack Pointer
+uint16_t CPU::SP = 0xFFFE;
+
+// Program Counter
+uint16_t CPU::PC = PC_START;
 
 /**
  * Compiler macros
@@ -102,7 +125,9 @@ volatile uint64_t CPU::totalCycles = 0;
 // Init OP
 uint8_t CPU::op = 0x00;
 
-// Init IME
+// IME: Interrupt Master Enable Flag
+// 0: All interrupts disabled
+// 1: Enable all interrupts that are enabled in IE (interrupt enable) register
 bool CPU::IME = 0;
 
 // Virtual HALT
@@ -126,15 +151,31 @@ uint64_t debugAfterCycle = DEBUG_AFTER_CYCLE;
  * Functions
  */
 
-uint8_t CPU::readOp() { return Memory::readByte(PC++); }
+uint8_t CPU::readOp() {
+    /**
+     * Read an opcode from the program
+     * @return An 8 byte opcode
+     */
+    return Memory::readByte(PC++); 
+}
 
 uint16_t CPU::readNn() {
+    /**
+     * Read program data from where PC is currently pointing
+     * Advances PC by two
+     * @return Two bytes of big endian program data
+     */
     uint8_t n1 = Memory::readByte(PC++);
     uint8_t n2 = Memory::readByte(PC++);
     return n1 | (n2 << 8);
 }
 
 void CPU::pushStack(const uint16_t data) {
+    /**
+     * Push 16 bits of data to the stack, high byte first
+     * Decreases SP by two
+     * @param data: The data to push to the stack
+     */
     SP--;
     Memory::writeByte(SP, data >> 8);
     SP--;
@@ -142,6 +183,11 @@ void CPU::pushStack(const uint16_t data) {
 }
 
 uint16_t CPU::popStack() {
+    /**
+     * Pop 16 bits of data from the stack
+     * Increases SP by two
+     * @return 16 bits of stack data.
+     */
     uint8_t n1 = Memory::readByte(SP);
     SP++;
     uint8_t n2 = Memory::readByte(SP);
@@ -149,9 +195,17 @@ uint16_t CPU::popStack() {
     return (n2 << 8) | n1;
 }
 
-void CPU::dumpRegister() { Serial.printf("AF: %04x, BC: %04x, DE: %04x, HL: %04x, SP: %04x, PC: %04x\n", AF, BC, DE, HL, SP, PC); }
+void CPU::dumpRegister() { 
+    /**
+     * Dump out all the CPU regsiters for debugging
+     */
+    Serial.printf("AF: %04x, BC: %04x, DE: %04x, HL: %04x, SP: %04x, PC: %04x\n", AF, BC, DE, HL, SP, PC); 
+    }
 
 void CPU::dumpStack() {
+    /**
+     * Dump out the stack for debugging
+     */
     for (uint16_t p = 0xCFFF; p >= SP; p--) {
         Serial.printf("%02x ", Memory::readByte(p));
     }
@@ -159,6 +213,9 @@ void CPU::dumpStack() {
 }
 
 void CPU::stopAndRestart() {
+    /**
+     * Dump out the total cycles and all registers, halt CPU
+     */
     Serial.printf("Cycles: %llu\n", totalCycles);
     dumpRegister();
     Serial.printf("Halting now.\n");
@@ -168,6 +225,10 @@ void CPU::stopAndRestart() {
 }
 
 void CPU::cpuStep() {
+    /**
+     * Perform one CPU operation
+     * This will update the timer, check for interrupts, decode and act upon the current opcode
+     */
     uint8_t n, n1, n2, interrupt;
     int8_t sn;
     uint16_t nn, nn1, nn2;
@@ -304,11 +365,13 @@ void CPU::cpuStep() {
 
     switch (op) {
         // NOP
+        // No Operation
         case 0x0:
             totalCycles += 1;
             break;
 
         // HALT
+        // Halt the CPU
         case 0x76:
             halted = 1;
             totalCycles += 1;
