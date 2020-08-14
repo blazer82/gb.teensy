@@ -273,8 +273,12 @@ void CPU::cpuStep() {
 #endif
 
     // Update timer
-    if ((Memory::readByte(MEM_TIMER_CONTROL) & 0x04) == 0x04) {
+    // Check to see if timer is enabled
+    if ((Memory::readByte(MEM_TIMER_CONTROL) & 0x04)) {
+        // Check the current TAC Input Clock Select field
         switch (Memory::readByte(MEM_TIMER_CONTROL) & 0x03) {
+            // Take the modulo of total cycles with a divider based
+            // on TAC. If this is 0, TIMA will be incremented
             case 3:
                 timerB = totalCycles % 64;
                 break;
@@ -291,12 +295,15 @@ void CPU::cpuStep() {
                 timerB = totalCycles % 250;
                 break;
         }
-
         if (timerB == 0 || timerB < timerA) {
+            // Incrememnt TIMA by one depending on TAC Input Clock Select field
             Memory::writeByteInternal(MEM_TIMA, Memory::readByte(MEM_TIMA) + 1, true);
 
+            // Handle TIMA Overflows
             if (Memory::readByte(MEM_TIMA) == 0) {
+                // Reset TIMA to the value stored in TMA
                 Memory::writeByteInternal(MEM_TIMA, Memory::readByte(MEM_TMA), true);
+                // Request a timer interrupt
                 Memory::interrupt(IRQ_TIMER);
             }
         }
@@ -304,25 +311,39 @@ void CPU::cpuStep() {
     }
 
     // Check for interrupts
+    // Only service interrupts when IME is enabled or the CPU is halted
     if (IME || halted) {
+        // Get the current interrupt flags from the IF register
+        // AND them with the IE register to get the enabled interrupts
         interrupt = Memory::readByte(MEM_IRQ_FLAG) & Memory::readByte(MEM_IRQ_ENABLE);
 
-        if ((interrupt & IRQ_VBLANK) == IRQ_VBLANK) {
+        // Handle VBLANK interrupts
+        if ((interrupt & IRQ_VBLANK)) {
+            // Disable interrupts
             IME = 0;
             if (halted) {
                 halted = 0;
             } else {
+                // Clear the VBLANK IRQ bit
                 Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_VBLANK));
+                // Push PC to the stack
                 pushStack(PC);
+                // Jump to VBLANK vector
                 PC = PC_VBLANK;
             }
-        } else if ((interrupt & IRQ_TIMER) == IRQ_TIMER) {
+        } 
+        // Handle timer interrupts
+        else if ((interrupt & IRQ_TIMER)) {
+            // Disable interrupts
             IME = 0;
             if (halted) {
                 halted = 0;
             } else {
+                // Clear the TIMER IRQ bit
                 Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_TIMER));
+                // Push PC to stack
                 pushStack(PC);
+                // Jump to Timer vector
                 PC = PC_TIMER;
             }
         }
