@@ -26,7 +26,7 @@
 
 void waitForKeyPress();
 
-FT81x ft81x;
+FT81x ft81x(1, 2, 3);
 
 void setup() {
     Serial.begin(9600);
