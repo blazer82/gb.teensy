@@ -2,15 +2,20 @@
 
 #include <sys/_stdint.h>
 
-#define RAM_CODE    0x149
-#define ROM_CODE    0x148
-#define CART_CODE   0x147
+#define RAM_CODE            0x149
+#define ROM_CODE            0x148
+#define CART_CODE           0x147
+#define ROM_BANK_SIZE       0x3FFF
+
+#define RAM_BOT             0xA000
+#define RAM_TOP             0xBFFF    
+
 
 class Cartridge {
     public:
-        Cartridge(uint8_t romCode, uint8_t ramCode, uint8_t cartCode);
-        uint8_t readByte(uint16_t addr);
-        void writeByte(uint16_t addr, uint8_t data);
+        Cartridge(const char* romFile);
+        virtual uint8_t readByte(uint16_t addr);
+        virtual void writeByte(uint16_t addr, uint8_t data);
 };
 
 

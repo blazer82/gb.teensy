@@ -19,6 +19,7 @@
 #pragma once
 
 #include <sys/_stdint.h>
+#include "../Cartridge/Cartridge.h"
 
 /*      Interrupts      */
 // IME: Interrupt Master Enable Flag(W)
@@ -156,7 +157,7 @@
 // External RAM
 // 0xA000 - 0xBFFF
 // Optional, sometimes in cartridge. Banked
-#define MEM_RAM_EXTERNAL  0xA000
+#define MEM_RAM_EXTERNAL  RAM_BOT
 
 // Work RAM
 // Two banks, 0xC000 - 0xCFFF and 0xD000 - 0xDFFF
