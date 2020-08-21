@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <Arduino.h>
 
+// Control Registers
 #define RAM_ENABLE_BOT          0x0000
 #define RAM_ENABLE_TOP          0X1FFF
 #define PRIMARY_BANK_BOT        0x2000
@@ -29,17 +30,13 @@ class MBC1 : public Cartridge{
         // Select simple ROM banking or advanced ROM banking
         uint8_t bankModeSelect;
 
-        // ROM banks 0x00/0x20/0x40/0x60
-        uint8_t** firstRomBanks;
-        // ROM Banks 0x0 - 0x7F (minus 0x00, 0x20, 0x40, 0x60)
-        uint8_t** secondaryRomBanks;
+        // ROM banks
+        uint8_t** romBanks;
         // RAM Banks 0x0 - 0x03
         uint8_t** ramBanks;
 
-        // The total amount of secondary ROM banks
-        uint8_t secondaryRomBankCount;
-        // The total amount of first ROM banks
-        uint8_t firstRomBankCount;
+        // The total amount of ROM banks
+        uint8_t romBankCount;
         // The total amount of RAM banks
         uint8_t ramBankCount;
         // The total size of each individual RAM bank (not all are 8K)

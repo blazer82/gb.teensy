@@ -2,13 +2,18 @@
 
 #include <sys/_stdint.h>
 
+// Cartridge metadata
 #define RAM_CODE            0x149
 #define ROM_CODE            0x148
 #define CART_CODE           0x147
 #define ROM_BANK_SIZE       0x3FFF
 
-#define RAM_BOT             0xA000
-#define RAM_TOP             0xBFFF    
+#define CART_ROM_ZERO_BOT   0X0000 // Technically, this can also be banked
+#define CART_ROM_ZERO_TOP   0x3FFF //
+#define CART_ROM_BANKED_BOT 0x4000
+#define CART_ROM_BANKED_TOP 0x7FFF
+#define CART_RAM_BOT        0xA000
+#define CART_RAM_TOP        0xBFFF    
 
 
 class Cartridge {
@@ -16,6 +21,9 @@ class Cartridge {
         Cartridge(const char* romFile);
         virtual uint8_t readByte(uint16_t addr);
         virtual void writeByte(uint16_t addr, uint8_t data);
+        // This is here so everything will build until I can remove legacy
+        // cartridge code
+        static uint8_t cartridge[0x8000] ;
 };
 
 
