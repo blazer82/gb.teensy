@@ -25,7 +25,7 @@
 void waitForKeyPress();
 void printDiagnostics();
 
-FT81x ft81x = FT81x(10, 9, 8, 7);
+FT81x ft81x = FT81x(10, 9, 8);
 
 static char title[16];
 
