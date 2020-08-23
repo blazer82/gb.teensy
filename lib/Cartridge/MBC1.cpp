@@ -29,7 +29,7 @@ MBC1::MBC1(const char *romFile) : Cartridge(romFile){
 
 uint8_t MBC1::readByte(uint16_t addr){
     // Handle reads from RAM
-    if(addr >= CART_RAM_BOT){
+    if(addr >= CART_RAM){
         // Mame sure RAM is enabled and exists
         if(ramEnable && ramBankCount != 0){
             // If this is a large RAM cart, then use secondary bank bits as 
@@ -57,49 +57,29 @@ uint8_t MBC1::readByte(uint16_t addr){
 
     }
     // Handle reads from banked cartridge ROM
-    else if(addr >= CART_ROM_BANKED_BOT){
-        // If this is a small ROM cart, then we don't need to do any fancy legwork
-        // with the secondary bank bits
+    else if(addr >= CART_ROM_BANKED){
+        // If this is a small ROM cart, then don't take the secondary bank bits into account
         if(romBankCount <= 32){
-            // Mask bank number with 1 - romBankCount to prevent out of bounds reads
-            return romBanks[primaryBankBits & (romBankCount - 1)][addr];
+            return romBanks[primaryBankBits][addr];
         }
         // Large ROM carts use the secondary bank bits
         else{
-            // Calculate the selected ROM bank using the bank bits
-            uint8_t romBank = ((secondaryBankBits << 5) | primaryBankBits);
-            // TODO: I don't know how the real MBC1 would handle attempts to read out
-            // of bounds data. Masking doesn't really work for 72, 80, and 96 bank carts.
-            // Right now I am subtracting to prevent out of bounds reads but I don't
-            // know if this is accurate.
-            if(romBank > romBankCount){
-                romBank = romBank - romBankCount;
-            }
-            return romBanks[romBank][addr];
-
+            return romBanks[((secondaryBankBits << 5) | primaryBankBits)][addr];
         }
     }
     // Handle reads from ROM bank zero
     // I know this is not called banked ROM, but technically it can be banked
-    else if(addr >= CART_ROM_ZERO_BOT){
+    else if(addr >= CART_ROM_ZERO){
         // If this is a small ROM cart, then this region is not banked
         if(romBankCount <= 32){
             // Read back from bank 0
             return romBanks[0][addr];
         }
         // If this is a large ROM cart, then this region can be banked.
-        // The secondary bank bits are shifted left five places to get the bank
         else{
-            if (romBankCount < 128){
-                // Make sure we don't read back from a bank that doesn't exist
-                // If we're not using the upper bank bit, mask it out
-                return romBanks[(secondaryBankBits & 0x1) << 5][addr];
-            }
-            else{
-                // Otherwise, use it
-                return romBanks[(secondaryBankBits) << 5][addr];
-            }
-            
+            // The secondary bank bits are shifted left five places 
+            // to get the bank
+            return romBanks[(secondaryBankBits) << 5][addr];            
         }
     }
     // MISRA
@@ -110,7 +90,7 @@ uint8_t MBC1::readByte(uint16_t addr){
 
 void MBC1::writeByte(uint16_t addr, uint8_t data){
     // Handle writes to RAM
-    if(addr >= CART_RAM_BOT){
+    if(addr >= CART_RAM){
         // Make sure RAM is enabled and it exists
         if(ramEnable && ramBankCount != 0){
             // Mask the address with the size of a RAM bank
@@ -135,27 +115,61 @@ void MBC1::writeByte(uint16_t addr, uint8_t data){
         }
     }
     // Handle writes to control registers
+    // This write function ensures that all data written to control registers
+    // is valid. Additional checking elsewhere is not needed
     // Manipulate the bank mode select register
-    else if(addr >= BANKING_MODE_SEL_BOT){
-        bankModeSelect = data & 0x1;
+    else if(addr >= BANKING_MODE_SEL_REG){
+        // Bank mode select only effects large RAM and large ROM carts
+        // Don't do anything otherwise
+        if(romBankCount > 32 || ramBankCount > 1){
+            bankModeSelect = data & 0x1;
+            return;
+        }
         return;
     }
     // Manipulate the secondary bank bits control register
-    else if(addr >= SECONDARY_BANK_BOT){
-        secondaryBankBits = data & 0x3;
+    else if(addr >= SECONDARY_BANK_REG){
+        // Handle large ROM carts
+        if (romBankCount > 32){
+            // Mask off data to be two bits
+            data = data & 0x3;
+            // Mask off the secondary bank bits so the game
+            // can't access out of bounds memory
+            secondaryBankBits = ((data << 5) & ((romBankCount - 1)) >> 5);
+            // TODO: This will break on 72, 80, and 96 bank carts
+            // I'm not sure if the MBC1 even supports those bank
+            // sizes, so I'm not dealing with this yet.
+            return;
+        }
+        // Handle large RAM carts
+        else if (ramBankCount > 1){
+            // Mask off data to be two bits
+            data = data & 0x3;
+            secondaryBankBits = data;
+            return;
+        }
+        //Otherwise, secondary banks are not used
         return;
     }
     // Manipulate primary bank bits control register
-    else if(addr >= PRIMARY_BANK_BOT){
+    else if(addr >= PRIMARY_BANK_REG){
+        // Mask off data to be 5 bits
+        data = data & 0x1F;
         // Writes of 0x0 default to 0x1
         if(data == 0x0){
-            data = 0x1;
+            primaryBankBits = 0x1;
+            return;
         }
-        primaryBankBits = data & 0x1F;
+        // Mask off the primary bank bits so the game can't
+        // access out of bounds memory
+        primaryBankBits = data & (romBankCount - 1);
+        // TODO: This will break on 72, 80, and 96 bank carts
+        // I'm not sure if the MBC1 even supports those bank
+        // sizes, so I'm not dealing with this yet.
         return;
     }
     // Manipulate RAM enable control register
-    if(addr >= RAM_ENABLE_BOT){
+    if(addr >= RAM_ENABLE_REG){
         // If 0xA is in the lower 4 bits, enable RAM
         if ((data & 0xF) == 0xA){
             ramEnable = 1;

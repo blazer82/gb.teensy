@@ -5,15 +5,11 @@
 #include <stdlib.h>
 #include <Arduino.h>
 
-// Control Registers
-#define RAM_ENABLE_BOT          0x0000
-#define RAM_ENABLE_TOP          0X1FFF
-#define PRIMARY_BANK_BOT        0x2000
-#define PRIMARY_BANK_TOP        0x3FFF
-#define SECONDARY_BANK_BOT      0x4000
-#define SECONDARY_BANK_TOP      0x5FFF
-#define BANKING_MODE_SEL_BOT    0x6000
-#define BANKING_MODE_SEL_TOP    0x7FFF
+// Control Register Addresses
+#define RAM_ENABLE_REG          0x0000
+#define PRIMARY_BANK_REG        0x2000
+#define SECONDARY_BANK_REG      0x4000
+#define BANKING_MODE_SEL_REG    0x6000
 
 class MBC1 : public Cartridge{
     public:

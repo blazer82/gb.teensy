@@ -8,12 +8,9 @@
 #define CART_CODE           0x147
 #define ROM_BANK_SIZE       0x3FFF
 
-#define CART_ROM_ZERO_BOT   0X0000 // Technically, this can also be banked
-#define CART_ROM_ZERO_TOP   0x3FFF //
-#define CART_ROM_BANKED_BOT 0x4000
-#define CART_ROM_BANKED_TOP 0x7FFF
-#define CART_RAM_BOT        0xA000
-#define CART_RAM_TOP        0xBFFF    
+#define CART_ROM_ZERO       0X0000 // Technically, this can also be banked
+#define CART_ROM_BANKED     0x4000
+#define CART_RAM            0xA000
 
 
 class Cartridge {
