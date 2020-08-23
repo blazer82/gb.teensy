@@ -2,9 +2,9 @@
 
 #include <Arduino.h>
 
-// #define GAME_TETRIS 1
+#define GAME_TETRIS 1
 // #define GAME_SUPER_MARIO 1
-#define TEST_CPU_INSTR 1
+// #define TEST_CPU_INSTR 1
 // #define TEST_SINGLE 1
 // #define TEST_INSTR_TIMING 1
 

@@ -29,12 +29,24 @@ FT81x ft81x = FT81x(10, 9, 8);
 
 static char title[16];
 
+#define JOYPAD_START 16
+#define JOYPAD_LEFT  17
+#define JOYPAD_RIGHT 18
+#define JOYPAD_DOWN  19
+#define JOYPAD_A     20
+
 void setup() {
     Serial.begin(9600);
 
     SPI.begin();
 
-    waitForKeyPress();
+    pinMode(JOYPAD_START, INPUT);
+    pinMode(JOYPAD_LEFT, INPUT);
+    pinMode(JOYPAD_RIGHT, INPUT);
+    pinMode(JOYPAD_DOWN, INPUT);
+    pinMode(JOYPAD_A, INPUT);
+
+    // waitForKeyPress();
 
     Serial.println("Enable display");
     ft81x.begin();
@@ -63,6 +75,22 @@ void loop() {
     while (true) {
         CPU::cpuStep();
         PPU::ppuStep(ft81x);
+
+        uint8_t joypad = Memory::readByte(MEM_JOYPAD);
+        if ((joypad & 0x10) == 0) {
+            bool left = digitalReadFast(JOYPAD_LEFT);
+            bool right = digitalReadFast(JOYPAD_RIGHT);
+            bool down = digitalReadFast(JOYPAD_DOWN);
+            joypad = (joypad & 0xF0) | 0x4 | (down << 3) | (left << 1) | right;
+            Memory::writeByteInternal(MEM_JOYPAD, joypad, true);
+        }
+        if ((joypad & 0x20) == 0) {
+            bool start = digitalReadFast(JOYPAD_START);
+            bool a = digitalReadFast(JOYPAD_A);
+            bool b = 1;  // digitalReadFast(JOYPAD_B);
+            joypad = (joypad & 0xF0) | 0x4 | (start << 3) | (b << 1) | a;
+            Memory::writeByteInternal(MEM_JOYPAD, joypad, true);
+        }
 
         if ((CPU::totalCycles % 1000000) == 0) {
             uint64_t time = millis() - start;
