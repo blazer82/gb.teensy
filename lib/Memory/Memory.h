@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <sys/_stdint.h>
+#include <Arduino.h>
 
 #define MEM_IRQ_ENABLE    0xFFFF
 #define MEM_IRQ_FLAG      0xFF0F
@@ -28,6 +28,7 @@
 #define MEM_LCD_SCROLL_Y  0xFF42
 #define MEM_LCD_SCROLL_X  0xFF43
 #define MEM_LCD_Y         0xFF44
+#define MEM_LCD_YC        0xFF45
 #define MEM_DMA           0xFF46
 #define MEM_DIVIDER       0xFF04
 #define MEM_TIMA          0xFF05
@@ -39,23 +40,32 @@
 #define MEM_RAM_ECHO      0xE000
 #define MEM_RAM_INTERNAL  0xC000
 #define MEM_ROM_BANK      0x4000
+#define MEM_TITLE         0x0134
 
-#define IRQ_VBLANK 0x01
-#define IRQ_TIMER  0x04
+#define IRQ_VBLANK   0x01
+#define IRQ_LCD_STAT 0x02
+#define IRQ_TIMER    0x04
+#define IRQ_SERIAL   0x08
+#define IRQ_JOYPAD   0x10
 
-#define PC_START  0x0100
-#define PC_VBLANK 0x0040
-#define PC_TIMER  0x0050
+#define PC_START    0x0100
+#define PC_VBLANK   0x0040
+#define PC_LCD_STAT 0x0048
+#define PC_TIMER    0x0050
+#define PC_SERIAL   0x0058
+#define PC_JOYPAD   0x0060
 
 class Memory {
    public:
     static void initMemory();
 
-    static void writeByte(const unsigned int location, const uint8_t data);
-    static void writeByteInternal(const unsigned int location, const uint8_t data, const bool internal);
-    static uint8_t readByte(const unsigned int location);
+    static void writeByte(const uint16_t location, const uint8_t data);
+    static void writeByteInternal(const uint16_t location, const uint8_t data, const bool internal);
+    static uint8_t readByte(const uint16_t location);
 
     static void interrupt(const uint8_t flag);
+
+    static void getTitle(char* title);
 
    protected:
    private:

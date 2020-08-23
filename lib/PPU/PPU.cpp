@@ -92,43 +92,75 @@ void PPU::ppuStep(FT81x &ft81x) {
     static uint8_t sendingFrame = 1;
     static uint8_t calculatingFrame = 0;
 
-    for (; ticks < CPU::totalCycles; ticks++) {
-        if (ticks % 116 == 0) {
-            lcdc = Memory::readByte(MEM_LCDC);
-            lcdStatus = Memory::readByte(MEM_LCD_STATUS);
+    while (ticks < CPU::totalCycles) {
+        ticks++;
+        const uint8_t cycleTicks = ticks % 114;
 
-            if ((lcdc & 0x80) == 0x80) {
-                y = (y + 1) % 152;
-
-                Memory::writeByte(MEM_LCD_Y, y);
-                originY = Memory::readByte(MEM_LCD_SCROLL_Y);
-                originX = Memory::readByte(MEM_LCD_SCROLL_X);
-
-                if (y < 144) {
-                    // calculate line
-                    if ((lcdc & 0x01) == 0x01) {
-                        getBackgroundForLine(y, frames[calculatingFrame], originX, originY);
-                    }
-
-                    if ((lcdc & 0x02) == 0x02) {
-                        getSpritesForLine(y, frames[calculatingFrame]);
-                    }
-
-                    Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
-                } else if (y == 144) {
-                    Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
-                    Memory::interrupt(IRQ_VBLANK);
-
-                    mapColorsForFrame(frames[calculatingFrame]);
-
-                    sendingFrame = calculatingFrame;
-                    calculatingFrame = !calculatingFrame;
-
-                    ft81x.writeGRAM(0, 2 * 160 * 144, (uint8_t *)frames[sendingFrame]);
+        switch (cycleTicks) {
+            case 0:  // reading from OAM memory
+                lcdStatus = Memory::readByte(MEM_LCD_STATUS);
+                Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x02, true);
+                if ((lcdStatus & 0x20) == 0x20) {
+                    Memory::interrupt(IRQ_LCD_STAT);
                 }
-            } else {
-                Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
-            }
+                break;
+
+            case 20:  // reading from both OAM and VRAM
+                lcdStatus = Memory::readByte(MEM_LCD_STATUS);
+                Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x02, true);
+                if (y == Memory::readByte(MEM_LCD_YC)) {
+                    Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFB) | 0x04, true);
+                    if ((lcdStatus & 0x40) == 0x40) {
+                        Memory::interrupt(IRQ_LCD_STAT);
+                    }
+                } else {
+                    Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFB) | 0x00, true);
+                }
+                break;
+
+            case 43:  // H-Blank and V-Blank period
+                lcdc = Memory::readByte(MEM_LCDC);
+                lcdStatus = Memory::readByte(MEM_LCD_STATUS);
+
+                if ((lcdc & 0x80) == 0x80) {
+                    y = (y + 1) % 152;
+
+                    Memory::writeByte(MEM_LCD_Y, y);
+                    originY = Memory::readByte(MEM_LCD_SCROLL_Y);
+                    originX = Memory::readByte(MEM_LCD_SCROLL_X);
+
+                    if (y < 144) {
+                        // calculate line
+                        if ((lcdc & 0x01) == 0x01) {
+                            getBackgroundForLine(y, frames[calculatingFrame], originX, originY);
+                        }
+
+                        if ((lcdc & 0x02) == 0x02) {
+                            getSpritesForLine(y, frames[calculatingFrame]);
+                        }
+
+                        Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
+                        if ((lcdStatus & 0x08) == 0x08) {
+                            Memory::interrupt(IRQ_LCD_STAT);
+                        }
+                    } else if (y == 144) {
+                        Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
+                        Memory::interrupt(IRQ_VBLANK);
+
+                        mapColorsForFrame(frames[calculatingFrame]);
+
+                        sendingFrame = calculatingFrame;
+                        calculatingFrame = !calculatingFrame;
+
+                        ft81x.writeGRAM(0, 2 * 160 * 144, (uint8_t *)frames[sendingFrame]);
+                    }
+                } else {
+                    Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
+                }
+                break;
+
+            default:
+                break;
         }
     }
 }

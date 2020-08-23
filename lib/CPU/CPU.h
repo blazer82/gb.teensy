@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <sys/_stdint.h>
+#include <Arduino.h>
 
 class CPU {
    public:
@@ -62,7 +62,9 @@ class CPU {
     static uint8_t divider;
 
     // Timer control
-    static uint8_t timerA, timerB;
+    static uint8_t timerCycles, timerTotalCycles;
+
+    static uint8_t cyclesDelta;
 
     // Debug
     static void dumpRegister();
