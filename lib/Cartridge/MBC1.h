@@ -30,13 +30,6 @@ class MBC1 : public Cartridge{
         uint8_t** romBanks;
         // RAM Banks 0x0 - 0x03
         uint8_t** ramBanks;
-
-        // The total amount of ROM banks
-        uint8_t romBankCount;
-        // The total amount of RAM banks
-        uint8_t ramBankCount;
-        // The total size of each individual RAM bank (not all are 8K)
-        uint16_t ramBankSize;
 };
 
 const uint8_t secondRomBankCount[]{

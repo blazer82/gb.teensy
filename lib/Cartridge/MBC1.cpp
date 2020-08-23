@@ -1,13 +1,6 @@
 #include "MBC1.h"
 
 MBC1::MBC1(const char *romFile) : Cartridge(romFile){
-    // TODO: Open a ROM file from filesystem and parse it for these values
-    // Right now just simulate the max values
-    ramBankCount = 4;  // Simulate 32KB of RAM
-    ramBankSize = 0x2000;
-    
-    romBankCount = 128;  // Simulate 2MB of ROM
-
     // Initialize the control registers
     ramEnable = 0x0;
     primaryBankBits = 0x1; // Defaults to bank 1 on PoR
@@ -34,9 +27,9 @@ uint8_t MBC1::readByte(uint16_t addr){
         if(ramEnable && ramBankCount != 0){
             // If this is a large RAM cart, then use secondary bank bits as 
             // the RAM bank
-            if(ramBankCount == 4){
+            if(ramBankCount >= 1){
                 // Return data
-                return ramBanks[secondaryBankBits][addr];
+                return ramBanks[secondaryBankBits][addr - CART_RAM];
             }
             // If this is not a large RAM cart, then the secondary bank bits are
             // not used for RAM bank switching
@@ -47,7 +40,7 @@ uint8_t MBC1::readByte(uint16_t addr){
                 // are all 8K per bank
                 addr = addr & (ramBankSize - 1);
                 // Read data from the first and only bank
-                return ramBanks[0][addr];
+                return ramBanks[0][addr - CART_RAM];
             }
         }
         else{
@@ -60,16 +53,16 @@ uint8_t MBC1::readByte(uint16_t addr){
     else if(addr >= CART_ROM_BANKED){
         // If this is a small ROM cart, then don't take the secondary bank bits into account
         if(romBankCount <= 32){
-            return romBanks[primaryBankBits][addr];
+            return romBanks[primaryBankBits][addr - CART_ROM_BANKED];
         }
         // Large ROM carts use the secondary bank bits
         else{
-            return romBanks[((secondaryBankBits << 5) | primaryBankBits)][addr];
+            return romBanks[((secondaryBankBits << 5) | primaryBankBits)][addr - CART_ROM_BANKED];
         }
     }
     // Handle reads from ROM bank zero
     // I know this is not called banked ROM, but technically it can be banked
-    else if(addr >= CART_ROM_ZERO){
+    else{
         // If this is a small ROM cart, then this region is not banked
         if(romBankCount <= 32){
             // Read back from bank 0
@@ -82,31 +75,27 @@ uint8_t MBC1::readByte(uint16_t addr){
             return romBanks[(secondaryBankBits) << 5][addr];            
         }
     }
-    // MISRA
-    else{
-        Serial.printf("Attempted to read from invalid address 0x%x!\n\n", addr);
-    }
 }
 
 void MBC1::writeByte(uint16_t addr, uint8_t data){
     // Handle writes to RAM
     if(addr >= CART_RAM){
         // Make sure RAM is enabled and it exists
-        if(ramEnable && ramBankCount != 0){
+        if(ramEnable && ramBankCount > 0){
             // Mask the address with the size of a RAM bank
             addr = addr & (ramBankSize - 1);
             // If this is a large RAM cart, then use secondary bank bits as 
             // the RAM bank
             if(ramBankCount > 1){
                 // Write the data
-                ramBanks[secondaryBankBits][addr] = data;
+                ramBanks[secondaryBankBits][addr - CART_RAM] = data;
                 return;
             }
             // If this is not a large RAM cart, then the secondary bank bits are
             // not used for RAM bank switching
             else{
                 // Write the data to the first and only bank
-                ramBanks[0][addr] = data;
+                ramBanks[0][addr - CART_RAM] = data;
                 return;
             }
         }
@@ -135,7 +124,7 @@ void MBC1::writeByte(uint16_t addr, uint8_t data){
             data = data & 0x3;
             // Mask off the secondary bank bits so the game
             // can't access out of bounds memory
-            secondaryBankBits = ((data << 5) & ((romBankCount - 1)) >> 5);
+            secondaryBankBits = (data & ((romBankCount - 1) >> 5));
             // TODO: This will break on 72, 80, and 96 bank carts
             // I'm not sure if the MBC1 even supports those bank
             // sizes, so I'm not dealing with this yet.
@@ -148,11 +137,11 @@ void MBC1::writeByte(uint16_t addr, uint8_t data){
             secondaryBankBits = data;
             return;
         }
-        //Otherwise, secondary banks are not used
+        //Otherwise, secondary banks are not used. Don't write them
         return;
     }
     // Manipulate primary bank bits control register
-    else if(addr >= PRIMARY_BANK_REG){
+    else{
         // Mask off data to be 5 bits
         data = data & 0x1F;
         // Writes of 0x0 default to 0x1
@@ -178,9 +167,5 @@ void MBC1::writeByte(uint16_t addr, uint8_t data){
             ramEnable = 0;
         }
         return;
-    }
-    // MISRA
-    else{
-        Serial.printf("Attempted to write to invalid address 0x%x!\n\n", addr);
     }
 }
