@@ -2,13 +2,13 @@
 
 Cartridge::Cartridge(const char* romFile){
     Serial.println("Initializing SD card...");
-    // See if the card is present and can be initialized:
+    // See if the card is present and can be initialized
     if (!SD.begin(BUILTIN_SDCARD)) {
         Serial.println("SD Card failed, or not present");
         return;
     }
 
-    File dataFile = SD.open(romFile);
+    dataFile = SD.open(romFile);
     if (dataFile) {
         // Get the cartridge code
         dataFile.seek(CART_CODE);
@@ -34,6 +34,7 @@ Cartridge::Cartridge(const char* romFile){
         Serial.printf("Game Name: %s\n", name);
         Serial.printf("\tCart Code: 0x%x\n", cartCode);
         Serial.printf("\tCart Type: %s\n", cartType);
+        Serial.printf("\tMemory Bank Controller: %s\n", lookupMBCTypeString(cartCode));
         Serial.println("ROM Info:");
         Serial.printf("\tROM Code: 0x%x\n", romCode);
         Serial.printf("\tROM Banks: %i\n", romBankCount);

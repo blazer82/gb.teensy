@@ -20,6 +20,19 @@
 #define CART_ROM_BANKED     0x4000
 #define CART_RAM            0xA000
 
+// Defines I made to differentiate memory bank controllers
+#define USES_NOMBC          0x0
+#define USES_MBC1           0x1
+#define USES_MBC2           0x2
+#define USES_MMM01          0x3
+#define USES_MBC3           0x4
+#define USES_MBC5           0x5
+#define USES_MBC6           0x6
+#define USES_MBC7           0x7
+#define USES_POCKETCAM      0x8
+#define USES_BANDAITAMA     0x9
+#define USES_HUC3           0xA
+#define USES_HUC1           0xB
 
 class Cartridge {
     public:
@@ -35,6 +48,9 @@ class Cartridge {
         uint8_t cartCode;
         uint8_t romCode;
         uint8_t ramCode;
+
+        // The file object used to read the ROM file off the SD card
+        File dataFile;
 
         // The cartridge type as a string
         const char* cartType;
@@ -54,6 +70,28 @@ class Cartridge {
         // Human readable name for the ROM
         char name[17];
 };
+
+uint8_t lookupMbcType(const char* romFile){
+    Serial.println("Initializing SD card...");
+    uint8_t ret;
+    // See if the card is present and can be initialized
+    if (!SD.begin(BUILTIN_SDCARD)) {
+        Serial.println("SD Card failed, or not present");
+        return;
+    }
+    File dataFile = SD.open(romFile);
+    if (dataFile) {
+        // Get the cartridge code
+        dataFile.seek(CART_CODE);
+        ret = lookupMBCType(dataFile.read());
+    }
+    else{
+        Serial.println("Unable to read cartridge");
+        ret = lookupMBCType(0x0);
+    }
+    dataFile.close();
+    return ret;
+}
 
 uint16_t lookupRamBankSize(uint8_t code){
     switch(code){
@@ -166,6 +204,7 @@ uint8_t lookupRamBanks(uint8_t code){
     }
 }
 
+const char noMbc[] PROGMEM = "NO MBC";
 const char unknown[] PROGMEM  = "UNKNOWN";
 const char romOnly[] PROGMEM = "ROM ONLY";
 const char mbc1[] PROGMEM = "MBC1";
@@ -190,10 +229,12 @@ const char mbc5Rumble[] PROGMEM = "MBC5+RUMBLE";
 const char mbc5RumbleRam[] PROGMEM = "MBC5+RUMBLE+RAM";
 const char mbc5RumbleRamBatt[] PROGMEM = "MBC5+RUMBLE+RAM+BATTERY";
 const char mbc6[] PROGMEM = "MBC6";
+const char mbc7[] PROGMEM = "MBC7";
 const char mbc7SensorRumbleRamBatt[] PROGMEM = "MBC7+SENSOR+RUMBLE+RAM+BATTERY";
 const char pocketCamera[] PROGMEM = "POCKET CAMERA";
 const char bandaiTama5[] PROGMEM = "BANDAI TAMA5";
 const char huc3[] PROGMEM = "HuC3";
+const char huc1[] PROGMEM = "HuC1";
 const char huc1RamBatt[] PROGMEM = "HuC1+RAM+BATTERY";
 
 const char* lookupCartType(uint8_t code){
@@ -259,56 +300,128 @@ const char* lookupCartType(uint8_t code){
     }
 }
 
+uint8_t lookupMBCType(uint8_t code){
+    switch(code){
+        case 0x00:
+            return USES_NOMBC;
+        case 0x01:
+            return USES_MBC1;
+        case 0x2:
+            return USES_MBC1;
+        case 0x3:
+            return USES_MBC1;
+        case 0x5:
+            return USES_MBC2;
+        case 0x6:
+            return USES_MBC2;
+        case 0x8:
+            return USES_NOMBC;
+        case 0x9:
+            return USES_NOMBC;
+        case 0xb:
+            return USES_MMM01;
+        case 0xc:
+            return USES_MMM01;
+        case 0xd:
+            return USES_MMM01;
+        case 0xf:
+            return USES_MBC3;
+        case 0x10:
+            return USES_MBC3;
+        case 0x11:
+            return USES_MBC3;
+        case 0x12:
+            return USES_MBC3;
+        case 0x13:
+            return USES_MBC3;
+        case 0x19:
+            return USES_MBC5;
+        case 0x1a:
+            return USES_MBC5;
+        case 0x1b:
+            return USES_MBC5;
+        case 0x1c:
+            return USES_MBC5;
+        case 0x1d:
+            return USES_MBC5;
+        case 0x1e:
+            return USES_MBC5;
+        case 0x20:
+            return USES_MBC6;
+        case 0x22:
+            return USES_MBC7;
+        case 0xfc:
+            return USES_POCKETCAM;
+        case 0xfd:
+            return USES_BANDAITAMA;
+        case 0xfe:
+            return USES_HUC3;
+        case 0xff:
+            return USES_HUC1;
+        default:
+            return USES_NOMBC;
+    }
+}
 
-/**
- * MBC Notes
- * 
- * No MBC
- * 32KByte ROM only. Two 12KByte banks
- * 0x0000 - 0x3FFF  Bank0
- * 0x4000 - 0x7FFF  Bank1
- * 0xA000 - 0xBFFF  Optional 8KByte RAM
- * 
- * MBC1
- * 0x0000 - 0x3FFF  ROM Bank 0x00/0x20/0x40/0x60
- * 0x4000 - 0x7FFF  ROM Bank 0x01 - 0x7F
- * 0xA000 - 0xBFFF  Space for 8KByte External RAM. Can be 2KByte, 8KByte, or 32KByte (four 8KByte banks)
- * Control Registers
- * 0x0000 - 0x1FFF  RAM Enable (write anywhere in this range)
- *                      0x00 Disable RAM
- *                      0x0A Enable RAM 
- *                      Practically any value with 0x0A in lower 4 bits enables RAM
- *                      Any other value disables RAM
- * 0x2000 - 0x3FFF  ROM Bank Number (5 Bits)
- *                      Selects ROM bank. If bank number is set too high, value
- *                      is masked. Writing 0x0 writes a 0x01. 
- * 0x4000 - 0x5FFF  RAM Bank Number OR Upper bits of ROM Bank Number (2 bits)
- *                      If used for upper bits of ROM bank, (only effective on 1MB or larger ROM carts)
- *                          Bank = (Upper 2 Bits << 5) + ROM Bank
- *                      If upper bits used for RAM bank, (only effective on 32KB or larger RAM carts)
- *                          Selects RAM bank 0x00 - 0x03
- * 0x6000 - 0x7FFF  Banking Mode Select (1 bit)
- *                      Selects banking mode. Controls the 2 bit banking register behavior
- *                      0x00 Simple Banking Mode
- *                          Only effects 0x4000 - 0x7FFF banking area. RAM banking disabled
- *                      0x01 RAM Banking Mode / Advanced Banking Mode
- *                          If RAM > 8KB:
- *                              Enables RAM banking, switches RAM bank area to bank selected by 2 bit banking register
- *                          If ROM > 1MB:
- *                              Previously unbankable 0x0000 - 0x3000 is now bankable. Switches between bank 0x00, 0x10, 0x20, 0x30
- * Deal with Multi Game Compilation Carts later, can't be bothered
- * 
- * MBC2
- * 0x0000 - 0x3FFF  ROM Bank 0
- * 0x4000 - 0x7FFF  ROM Bank 0x01 - 0xF
- * 0xA000 - 0xA1FF  512x4bits RAM, built into MBC2 chip. 
- *                  Only lower 4 bits of the bytes in this area are used
- * Control Registers
- * 0x0000 - 0x1FFF RAM Enable
- *      LSb of upper address byte must be 0 to enable/disable RAM. 
- *          Ex: 0x0000 - 0x00FF, 0x0200 - 0x2FF, 0x0400 - 0x4FFF ... 0x1E00 - 0x1EFF
- * 0x2000 - 0x3FFF ROM Bank Number
- *      0xXXXXBBBB: X is don't care, B is bank select bit. Will select a ROM bank at 0x4000 - 0x7FFF
- *      LSb of upper address byte must be 1 to select ROM bank.
- *          Ex: 0x2100 - 0x21FF, 0x2300 - 0x23FF ... 0x3F00 -0x3FFF
- * */
+const char* lookupMBCTypeString(uint8_t code){
+    switch(code){
+        case 0x00:
+            return noMbc;
+        case 0x01:
+            return mbc1;
+        case 0x2:
+            return mbc1;
+        case 0x3:
+            return mbc1;
+        case 0x5:
+            return mbc2;
+        case 0x6:
+            return mbc2;
+        case 0x8:
+            return noMbc;
+        case 0x9:
+            return noMbc;
+        case 0xb:
+            return mmm01;
+        case 0xc:
+            return mmm01;
+        case 0xd:
+            return mmm01;
+        case 0xf:
+            return mbc3;
+        case 0x10:
+            return mbc3;
+        case 0x11:
+            return mbc3;
+        case 0x12:
+            return mbc3;
+        case 0x13:
+            return mbc3;
+        case 0x19:
+            return mbc5;
+        case 0x1a:
+            return mbc5;
+        case 0x1b:
+            return mbc5;
+        case 0x1c:
+            return mbc5;
+        case 0x1d:
+            return mbc5;
+        case 0x1e:
+            return mbc5;
+        case 0x20:
+            return mbc6;
+        case 0x22:
+            return mbc7;
+        case 0xfc:
+            return pocketCamera;
+        case 0xfd:
+            return bandaiTama5;
+        case 0xfe:
+            return huc3;
+        case 0xff:
+            return huc1;
+        default:
+            return unknown;
+    }
+}

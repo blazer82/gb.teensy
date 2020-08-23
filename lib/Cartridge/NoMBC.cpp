@@ -1,8 +1,8 @@
 #include "NoMBC.h"
 
 NoMBC::NoMBC(const char *romFile) : Cartridge(romFile){
-    // Allocate space for the ROM
-    rom = (uint8_t*)malloc(0x7FFF * sizeof(uint8_t));
+    // Allocate space for the ROM, always 2 banks
+    rom = (uint8_t*)malloc(ROM_BANK_SIZE * 2 * sizeof(uint8_t));
 
     // Allocate space for the RAM, if any
     if (ramSize != 0x0){

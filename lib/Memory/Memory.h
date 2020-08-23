@@ -119,7 +119,7 @@
 #define MEM_TMA           0xFF06
 
 // TAC: Timer Control (R/W)
-// Bit 0-1  Input Clock Select
+// Bit 0-1  INULLnput Clock Select
 //  0b00    4096 Hz
 //  0b01    262144 Hz
 //  0b10    65536 Hz
