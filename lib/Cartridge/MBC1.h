@@ -27,6 +27,7 @@ class MBC1 : public Cartridge{
         // Select simple ROM banking or advanced ROM banking
         uint8_t bankModeSelect;
 
+        // TODO: Allocate these in PSRAM
         // ROM banks
         uint8_t** romBanks;
         // RAM Banks 0x0 - 0x03
