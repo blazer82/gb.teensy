@@ -20,12 +20,16 @@
 
 #include <sys/_stdint.h>
 #include <FT81x.h>
+#include "../Memory/Memory.h"
 
 class PPU {
    public:
     static void ppuStep(FT81x &ft81x);
+    static void setMemoryHandle(Memory* memHandle);
 
    protected:
+    // Handle to Memory
+    static Memory* mem;
     static uint16_t frames[2][160 * 144];
     static uint64_t ticks;
     static uint8_t originX, originY, lcdc, lcdStatus;
@@ -33,6 +37,7 @@ class PPU {
     static void getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t originX, const uint8_t originY);
     static void getSpritesForLine(const uint8_t y, uint16_t *frame);
     static void mapColorsForFrame(uint16_t *frame);
+
 
    private:
 };

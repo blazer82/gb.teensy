@@ -142,6 +142,9 @@ uint8_t CPU::divider = 0;
 // Timer control
 uint8_t CPU::timerA = 0, CPU::timerB = 0xFF;
 
+// Handle to Memory
+Memory* CPU::mem = 0;
+
 // Debug variables
 #ifdef DEBUG_AFTER_CYCLE
 uint64_t debugAfterCycle = DEBUG_AFTER_CYCLE;
@@ -151,12 +154,16 @@ uint64_t debugAfterCycle = DEBUG_AFTER_CYCLE;
  * Functions
  */
 
+void CPU::setMemoryHandle(Memory* memHandle){
+    CPU::mem = memHandle;
+}
+
 uint8_t CPU::readOp() {
     /**
      * Read an opcode from the program
      * @return An 8 byte opcode
      */
-    return Memory::readByte(PC++); 
+    return CPU::mem->readByte(PC++); 
 }
 
 uint16_t CPU::readNn() {
@@ -165,8 +172,8 @@ uint16_t CPU::readNn() {
      * Advances PC by two
      * @return Two bytes of big endian program data
      */
-    uint8_t n1 = Memory::readByte(PC++);
-    uint8_t n2 = Memory::readByte(PC++);
+    uint8_t n1 = CPU::mem->readByte(PC++);
+    uint8_t n2 = CPU::mem->readByte(PC++);
     return n1 | (n2 << 8);
 }
 
@@ -177,9 +184,9 @@ void CPU::pushStack(const uint16_t data) {
      * @param data: The data to push to the stack
      */
     SP--;
-    Memory::writeByte(SP, data >> 8);
+    CPU::mem->writeByte(SP, data >> 8);
     SP--;
-    Memory::writeByte(SP, data & 0x00FF);
+    CPU::mem->writeByte(SP, data & 0x00FF);
 }
 
 uint16_t CPU::popStack() {
@@ -188,9 +195,9 @@ uint16_t CPU::popStack() {
      * Increases SP by two
      * @return 16 bits of stack data.
      */
-    uint8_t n1 = Memory::readByte(SP);
+    uint8_t n1 = CPU::mem->readByte(SP);
     SP++;
-    uint8_t n2 = Memory::readByte(SP);
+    uint8_t n2 = CPU::mem->readByte(SP);
     SP++;
     return (n2 << 8) | n1;
 }
@@ -207,7 +214,7 @@ void CPU::dumpStack() {
      * Dump out the stack for debugging
      */
     for (uint16_t p = 0xCFFF; p >= SP; p--) {
-        Serial.printf("%02x ", Memory::readByte(p));
+        Serial.printf("%02x ", CPU::mem->readByte(p));
     }
     Serial.printf("\n");
 }
@@ -248,35 +255,35 @@ void CPU::cpuStep() {
     if (totalCycles > HALT_AFTER_CYCLE) {
         Serial.printf("0x8000 - 0x97FF (Tile Data):\n");
         for (uint16_t i = 0x8000; i < 0x97FF; i += 2) {
-            Serial.printf("%02x-%02x ", Memory::readByte(i), Memory::readByte(i + 1));
+            Serial.printf("%02x-%02x ", CPU::mem->readByte(i), CPU::mem->readByte(i + 1));
         }
         Serial.printf("\n");
         Serial.printf("0x9800 - 0x9BFF (Background Map):\n");
         for (uint16_t i = 0x9800; i < 0x9BFF; i++) {
-            Serial.printf("%02x ", Memory::readByte(i));
+            Serial.printf("%02x ", CPU::mem->readByte(i));
         }
         Serial.printf("\n");
         Serial.printf("0x9C00 - 0x9FFF (Background Maps):\n");
         for (uint16_t i = 0x9C00; i < 0x9FFF; i++) {
-            Serial.printf("%02x ", Memory::readByte(i));
+            Serial.printf("%02x ", CPU::mem->readByte(i));
         }
         Serial.printf("\n");
         Serial.printf("0xFE00 - 0xFEA0 (OAM):\n");
         for (uint16_t i = 0xFE00; i < 0xFEA0; i += 4) {
-            Serial.printf("%02x-%02x-%02x-%02x ", Memory::readByte(i), Memory::readByte(i + 1), Memory::readByte(i + 2), Memory::readByte(i + 3));
+            Serial.printf("%02x-%02x-%02x-%02x ", CPU::mem->readByte(i), CPU::mem->readByte(i + 1), CPU::mem->readByte(i + 2), CPU::mem->readByte(i + 3));
         }
         Serial.printf("\n");
-        Serial.printf("0xFF40 (LCDC): %02x\n", Memory::readByte(0xFF40));
-        Serial.printf("0xFF41 (STAT): %02x\n", Memory::readByte(0xFF41));
+        Serial.printf("0xFF40 (LCDC): %02x\n", CPU::mem->readByte(0xFF40));
+        Serial.printf("0xFF41 (STAT): %02x\n", CPU::mem->readByte(0xFF41));
         stopAndRestart();
     }
 #endif
 
     // Update timer
     // Check to see if timer is enabled
-    if ((Memory::readByte(MEM_TIMER_CONTROL) & 0x04)) {
+    if ((CPU::mem->readByte(MEM_TIMER_CONTROL) & 0x04)) {
         // Check the current TAC Input Clock Select field
-        switch (Memory::readByte(MEM_TIMER_CONTROL) & 0x03) {
+        switch (CPU::mem->readByte(MEM_TIMER_CONTROL) & 0x03) {
             // Take the modulo of total cycles with a divider based
             // on TAC. If this is 0, TIMA will be incremented
             case 3:
@@ -297,14 +304,14 @@ void CPU::cpuStep() {
         }
         if (timerB == 0 || timerB < timerA) {
             // Incrememnt TIMA by one depending on TAC Input Clock Select field
-            Memory::writeByteInternal(MEM_TIMA, Memory::readByte(MEM_TIMA) + 1, true);
+            CPU::mem->writeByteInternal(MEM_TIMA, CPU::mem->readByte(MEM_TIMA) + 1, true);
 
             // Handle TIMA Overflows
-            if (Memory::readByte(MEM_TIMA) == 0) {
+            if (CPU::mem->readByte(MEM_TIMA) == 0) {
                 // Reset TIMA to the value stored in TMA
-                Memory::writeByteInternal(MEM_TIMA, Memory::readByte(MEM_TMA), true);
+                CPU::mem->writeByteInternal(MEM_TIMA, CPU::mem->readByte(MEM_TMA), true);
                 // Request a timer interrupt
-                Memory::interrupt(IRQ_TIMER);
+                CPU::mem->interrupt(IRQ_TIMER);
             }
         }
         timerA = timerB;
@@ -315,7 +322,7 @@ void CPU::cpuStep() {
     if (IME || halted) {
         // Get the current interrupt flags from the IF register
         // AND them with the IE register to get the enabled interrupts
-        interrupt = Memory::readByte(MEM_IRQ_FLAG) & Memory::readByte(MEM_IRQ_ENABLE);
+        interrupt = CPU::mem->readByte(MEM_IRQ_FLAG) & CPU::mem->readByte(MEM_IRQ_ENABLE);
 
         // Handle VBLANK interrupts
         if ((interrupt & IRQ_VBLANK)) {
@@ -325,7 +332,7 @@ void CPU::cpuStep() {
                 halted = 0;
             } else {
                 // Clear the VBLANK IRQ bit
-                Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_VBLANK));
+                CPU::mem->writeByte(MEM_IRQ_FLAG, CPU::mem->readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_VBLANK));
                 // Push PC to the stack
                 pushStack(PC);
                 // Jump to VBLANK vector
@@ -340,7 +347,7 @@ void CPU::cpuStep() {
                 halted = 0;
             } else {
                 // Clear the TIMER IRQ bit
-                Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_TIMER));
+                CPU::mem->writeByte(MEM_IRQ_FLAG, CPU::mem->readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_TIMER));
                 // Push PC to stack
                 pushStack(PC);
                 // Jump to Timer vector
@@ -352,7 +359,7 @@ void CPU::cpuStep() {
     // Update divider register
     if (divider > (totalCycles % 61)) {
         divider = totalCycles % 61;
-        Memory::writeByteInternal(MEM_DIVIDER, Memory::readByte(MEM_DIVIDER) + 1, true);
+        CPU::mem->writeByteInternal(MEM_DIVIDER, CPU::mem->readByte(MEM_DIVIDER) + 1, true);
     }
 
     // Check if halted
@@ -376,7 +383,7 @@ void CPU::cpuStep() {
         dumpRegister();
 
         /*for (uint16_t i = 0x8000; i <= 0x97FF; i++) {
-            Serial.printf("%02x ", Memory::readByte(i));
+            Serial.printf("%02x ", CPU::mem->readByte(i));
         }
 
         Serial.printf("\n");
@@ -454,7 +461,7 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0x7E:
-            AF = LD_Nn_nN(AF, Memory::readByte(HL));
+            AF = LD_Nn_nN(AF, CPU::mem->readByte(HL));
             totalCycles += 2;
             break;
         case 0x40:
@@ -482,7 +489,7 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0x46:
-            BC = LD_Nn_nN(BC, Memory::readByte(HL));
+            BC = LD_Nn_nN(BC, CPU::mem->readByte(HL));
             totalCycles += 2;
             break;
         case 0x48:
@@ -510,7 +517,7 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0x4E:
-            BC = LD_nN_nN(BC, Memory::readByte(HL));
+            BC = LD_nN_nN(BC, CPU::mem->readByte(HL));
             totalCycles += 2;
             break;
         case 0x50:
@@ -538,7 +545,7 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0x56:
-            DE = LD_Nn_nN(DE, Memory::readByte(HL));
+            DE = LD_Nn_nN(DE, CPU::mem->readByte(HL));
             totalCycles += 2;
             break;
         case 0x58:
@@ -566,7 +573,7 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0x5E:
-            DE = LD_nN_nN(DE, Memory::readByte(HL));
+            DE = LD_nN_nN(DE, CPU::mem->readByte(HL));
             totalCycles += 2;
             break;
         case 0x60:
@@ -594,7 +601,7 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0x66:
-            HL = LD_Nn_nN(HL, Memory::readByte(HL));
+            HL = LD_Nn_nN(HL, CPU::mem->readByte(HL));
             totalCycles += 2;
             break;
         case 0x68:
@@ -622,49 +629,49 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0x6E:
-            HL = LD_nN_nN(HL, Memory::readByte(HL));
+            HL = LD_nN_nN(HL, CPU::mem->readByte(HL));
             totalCycles += 2;
             break;
         case 0x70:
-            Memory::writeByte(HL, BC >> 8);
+            CPU::mem->writeByte(HL, BC >> 8);
             totalCycles += 2;
             break;
         case 0x71:
-            Memory::writeByte(HL, BC & 0x00FF);
+            CPU::mem->writeByte(HL, BC & 0x00FF);
             totalCycles += 2;
             break;
         case 0x72:
-            Memory::writeByte(HL, DE >> 8);
+            CPU::mem->writeByte(HL, DE >> 8);
             totalCycles += 2;
             break;
         case 0x73:
-            Memory::writeByte(HL, DE & 0x00FF);
+            CPU::mem->writeByte(HL, DE & 0x00FF);
             totalCycles += 2;
             break;
         case 0x74:
-            Memory::writeByte(HL, HL >> 8);
+            CPU::mem->writeByte(HL, HL >> 8);
             totalCycles += 2;
             break;
         case 0x75:
-            Memory::writeByte(HL, HL & 0x00FF);
+            CPU::mem->writeByte(HL, HL & 0x00FF);
             totalCycles += 2;
             break;
         case 0x36:
-            Memory::writeByte(HL, readOp());
+            CPU::mem->writeByte(HL, readOp());
             totalCycles += 3;
             break;
 
         // LD A,n
         case 0x0A:
-            AF = LD_Nn_nN(AF, Memory::readByte(BC));
+            AF = LD_Nn_nN(AF, CPU::mem->readByte(BC));
             totalCycles += 2;
             break;
         case 0x1A:
-            AF = LD_Nn_nN(AF, Memory::readByte(DE));
+            AF = LD_Nn_nN(AF, CPU::mem->readByte(DE));
             totalCycles += 2;
             break;
         case 0xFA:
-            AF = LD_Nn_nN(AF, Memory::readByte(readNn()));
+            AF = LD_Nn_nN(AF, CPU::mem->readByte(readNn()));
             totalCycles += 4;
             break;
         case 0x3E:
@@ -698,70 +705,70 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0x02:
-            Memory::writeByte(BC, AF >> 8);
+            CPU::mem->writeByte(BC, AF >> 8);
             totalCycles += 2;
             break;
         case 0x12:
-            Memory::writeByte(DE, AF >> 8);
+            CPU::mem->writeByte(DE, AF >> 8);
             totalCycles += 2;
             break;
         case 0x77:
-            Memory::writeByte(HL, AF >> 8);
+            CPU::mem->writeByte(HL, AF >> 8);
             totalCycles += 2;
             break;
         case 0xEA:
-            Memory::writeByte(readNn(), AF >> 8);
+            CPU::mem->writeByte(readNn(), AF >> 8);
             totalCycles += 4;
             break;
 
         // LD A,(C)
         case 0xF2:
-            AF = LD_Nn_n(AF, Memory::readByte(BC | 0xFF00));
+            AF = LD_Nn_n(AF, CPU::mem->readByte(BC | 0xFF00));
             totalCycles += 8;
             break;
 
         // LD (C),A
         case 0xE2:
-            Memory::writeByte(BC | 0xFF00, AF >> 8);
+            CPU::mem->writeByte(BC | 0xFF00, AF >> 8);
             totalCycles += 8;
             break;
 
         // LDH (n),A
         case 0xE0:
-            Memory::writeByte(0xFF00 + readOp(), AF >> 8);
+            CPU::mem->writeByte(0xFF00 + readOp(), AF >> 8);
             totalCycles += 3;
             break;
 
         // LDH A,(n)
         case 0xF0:
-            AF = LD_Nn_n(AF, Memory::readByte(0xFF00 + readOp()));
+            AF = LD_Nn_n(AF, CPU::mem->readByte(0xFF00 + readOp()));
             totalCycles += 3;
             break;
 
         // LDD A,(HL)
         case 0x3A:
-            AF = LD_Nn_n(AF, Memory::readByte(HL));
+            AF = LD_Nn_n(AF, CPU::mem->readByte(HL));
             HL--;
             totalCycles += 2;
             break;
 
         // LDD (HL),A
         case 0x32:
-            Memory::writeByte(HL, AF >> 8);
+            CPU::mem->writeByte(HL, AF >> 8);
             HL--;
             totalCycles += 2;
             break;
 
         // LDI (HL),A
         case 0x22:
-            Memory::writeByte(HL, AF >> 8);
+            CPU::mem->writeByte(HL, AF >> 8);
             HL++;
             totalCycles += 2;
             break;
 
         // LDI A,(HL)
         case 0x2A:
-            AF = LD_Nn_n(AF, Memory::readByte(HL));
+            AF = LD_Nn_n(AF, CPU::mem->readByte(HL));
             HL++;
             totalCycles += 2;
             break;
@@ -801,8 +808,8 @@ void CPU::cpuStep() {
         // LD (nn),SP
         case 0x08:
             nn = readNn();
-            Memory::writeByte(nn, SP & 0xFF);
-            Memory::writeByte(nn + 1, SP >> 8);
+            CPU::mem->writeByte(nn, SP & 0xFF);
+            CPU::mem->writeByte(nn + 1, SP >> 8);
             totalCycles += 5;
             break;
 
@@ -901,7 +908,7 @@ void CPU::cpuStep() {
             break;
         case 0x86:
             n1 = AF >> 8;
-            n2 = Memory::readByte(HL);
+            n2 = CPU::mem->readByte(HL);
             AF = LD_Nn_n(AF, n1 + n2);
             n = AF >> 8;
             AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00) | HALF_S(n1, n2) | CARRY_S(n, n1, n2));
@@ -982,7 +989,7 @@ void CPU::cpuStep() {
             break;
         case 0x8E:
             n1 = AF >> 8;
-            n2 = Memory::readByte(HL);
+            n2 = CPU::mem->readByte(HL);
             c = CARRY_F(AF) >> 4;
             AF = LD_Nn_n(AF, n1 + n2 + c);
             n = AF >> 8;
@@ -1051,7 +1058,7 @@ void CPU::cpuStep() {
             break;
         case 0x96:
             n1 = AF >> 8;
-            n2 = Memory::readByte(HL);
+            n2 = CPU::mem->readByte(HL);
             AF = LD_Nn_n(AF, n1 - n2);
             AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00) | SUB_V | HBORROW_S(n1, n2) | BORROW_S(n1, n2));
             totalCycles += 2;
@@ -1123,7 +1130,7 @@ void CPU::cpuStep() {
             break;
         case 0x9E:
             n1 = AF >> 8;
-            n2 = Memory::readByte(HL);
+            n2 = CPU::mem->readByte(HL);
             c = CARRY_F(AF) >> 4;
             AF = LD_Nn_n(AF, n1 - n2 - c);
             AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00) | SUB_V | HBORROW_Sc(n1, n2, c) | BORROW_Sc(n1, n2, c));
@@ -1177,7 +1184,7 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0xA6:
-            AF = LD_Nn_n(AF, AND_Nn_nN(AF, Memory::readByte(HL)));
+            AF = LD_Nn_n(AF, AND_Nn_nN(AF, CPU::mem->readByte(HL)));
             AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00) | HALF_V);
             totalCycles += 2;
             break;
@@ -1224,7 +1231,7 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0xB6:
-            AF = LD_Nn_n(AF, OR_Nn_nN(AF, Memory::readByte(HL)));
+            AF = LD_Nn_n(AF, OR_Nn_nN(AF, CPU::mem->readByte(HL)));
             AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00));
             totalCycles += 2;
             break;
@@ -1271,7 +1278,7 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0xAE:
-            AF = LD_Nn_n(AF, XOR_Nn_nN(AF, Memory::readByte(HL)));
+            AF = LD_Nn_n(AF, XOR_Nn_nN(AF, CPU::mem->readByte(HL)));
             AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00));
             totalCycles += 2;
             break;
@@ -1333,7 +1340,7 @@ void CPU::cpuStep() {
             break;
         case 0xBE:
             n1 = AF >> 8;
-            n2 = Memory::readByte(HL);
+            n2 = CPU::mem->readByte(HL);
             n = n1 - n2;
             AF = LD_nN_n(AF, ZERO_S(n) | SUB_V | HBORROW_S(n1, n2) | BORROW_S(n1, n2));
             totalCycles += 2;
@@ -1383,8 +1390,8 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0x34:
-            Memory::writeByte(HL, Memory::readByte(HL) + 1);
-            AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (((Memory::readByte(HL) & 0x0F) == 0) << 5) | CARRY_F(AF));
+            CPU::mem->writeByte(HL, CPU::mem->readByte(HL) + 1);
+            AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL)) | (((CPU::mem->readByte(HL) & 0x0F) == 0) << 5) | CARRY_F(AF));
             totalCycles += 3;
             break;
 
@@ -1425,8 +1432,8 @@ void CPU::cpuStep() {
             totalCycles += 1;
             break;
         case 0x35:
-            Memory::writeByte(HL, Memory::readByte(HL) - 1);
-            AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | SUB_V | (((Memory::readByte(HL) & 0x0F) == 0x0F) << 5) | CARRY_F(AF));
+            CPU::mem->writeByte(HL, CPU::mem->readByte(HL) - 1);
+            AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL)) | SUB_V | (((CPU::mem->readByte(HL) & 0x0F) == 0x0F) << 5) | CARRY_F(AF));
             totalCycles += 3;
             break;
 
@@ -1585,9 +1592,9 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x06:
-                    c = (Memory::readByte(HL) >> 7) & 0x01;
-                    Memory::writeByte(HL, (Memory::readByte(HL) << 1) | c);
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
+                    c = (CPU::mem->readByte(HL) >> 7) & 0x01;
+                    CPU::mem->writeByte(HL, (CPU::mem->readByte(HL) << 1) | c);
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL)) | (c << 4));
                     totalCycles += 4;
                     break;
 
@@ -1635,9 +1642,9 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x16:
-                    c = (Memory::readByte(HL) >> 7) & 0x01;
-                    Memory::writeByte(HL, (Memory::readByte(HL) << 1) | (CARRY_F(AF) >> 4));
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
+                    c = (CPU::mem->readByte(HL) >> 7) & 0x01;
+                    CPU::mem->writeByte(HL, (CPU::mem->readByte(HL) << 1) | (CARRY_F(AF) >> 4));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL)) | (c << 4));
                     totalCycles += 4;
                     break;
 
@@ -1685,9 +1692,9 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x0E:
-                    c = Memory::readByte(HL) & 0x01;
-                    Memory::writeByte(HL, (Memory::readByte(HL) >> 1) | (c << 7));
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
+                    c = CPU::mem->readByte(HL) & 0x01;
+                    CPU::mem->writeByte(HL, (CPU::mem->readByte(HL) >> 1) | (c << 7));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL)) | (c << 4));
                     totalCycles += 4;
                     break;
 
@@ -1735,9 +1742,9 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x1E:
-                    c = Memory::readByte(HL) & 0x01;
-                    Memory::writeByte(HL, (Memory::readByte(HL) >> 1) | (CARRY_F(AF) << 3));
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
+                    c = CPU::mem->readByte(HL) & 0x01;
+                    CPU::mem->writeByte(HL, (CPU::mem->readByte(HL) >> 1) | (CARRY_F(AF) << 3));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL)) | (c << 4));
                     totalCycles += 4;
                     break;
 
@@ -1785,9 +1792,9 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x26:
-                    c = (Memory::readByte(HL) >> 7) & 0x01;
-                    Memory::writeByte(HL, Memory::readByte(HL) << 1);
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
+                    c = (CPU::mem->readByte(HL) >> 7) & 0x01;
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) << 1);
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL)) | (c << 4));
                     totalCycles += 4;
                     break;
 
@@ -1835,9 +1842,9 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x2E:
-                    c = Memory::readByte(HL) & 0x01;
-                    Memory::writeByte(HL, (Memory::readByte(HL) >> 1) | (Memory::readByte(HL) & 0x0080));
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
+                    c = CPU::mem->readByte(HL) & 0x01;
+                    CPU::mem->writeByte(HL, (CPU::mem->readByte(HL) >> 1) | (CPU::mem->readByte(HL) & 0x0080));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL)) | (c << 4));
                     totalCycles += 4;
                     break;
 
@@ -1885,9 +1892,9 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x3E:
-                    c = Memory::readByte(HL) & 0x01;
-                    Memory::writeByte(HL, Memory::readByte(HL) >> 1);
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
+                    c = CPU::mem->readByte(HL) & 0x01;
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) >> 1);
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL)) | (c << 4));
                     totalCycles += 4;
                     break;
 
@@ -1921,7 +1928,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x46:
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x01) | HALF_V | CARRY_F(AF));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL) & 0x01) | HALF_V | CARRY_F(AF));
                     totalCycles += 4;
                     break;
                 case 0x4F:
@@ -1953,7 +1960,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x4E:
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x02) | HALF_V | CARRY_F(AF));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL) & 0x02) | HALF_V | CARRY_F(AF));
                     totalCycles += 4;
                     break;
                 case 0x57:
@@ -1985,7 +1992,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x56:
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x04) | HALF_V | CARRY_F(AF));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL) & 0x04) | HALF_V | CARRY_F(AF));
                     totalCycles += 4;
                     break;
                 case 0x5F:
@@ -2017,7 +2024,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x5E:
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x08) | HALF_V | CARRY_F(AF));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL) & 0x08) | HALF_V | CARRY_F(AF));
                     totalCycles += 4;
                     break;
                 case 0x67:
@@ -2049,7 +2056,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x66:
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x10) | HALF_V | CARRY_F(AF));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL) & 0x10) | HALF_V | CARRY_F(AF));
                     totalCycles += 4;
                     break;
                 case 0x6F:
@@ -2081,7 +2088,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x6E:
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x20) | HALF_V | CARRY_F(AF));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL) & 0x20) | HALF_V | CARRY_F(AF));
                     totalCycles += 4;
                     break;
                 case 0x77:
@@ -2113,7 +2120,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x76:
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x40) | HALF_V | CARRY_F(AF));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL) & 0x40) | HALF_V | CARRY_F(AF));
                     totalCycles += 4;
                     break;
                 case 0x7F:
@@ -2145,7 +2152,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x7E:
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x80) | HALF_V | CARRY_F(AF));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL) & 0x80) | HALF_V | CARRY_F(AF));
                     totalCycles += 4;
                     break;
 
@@ -2179,7 +2186,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xC6:
-                    Memory::writeByte(HL, Memory::readByte(HL) | 0x01);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) | 0x01);
                     totalCycles += 4;
                     break;
                 case 0xCF:
@@ -2211,7 +2218,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xCE:
-                    Memory::writeByte(HL, Memory::readByte(HL) | 0x02);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) | 0x02);
                     totalCycles += 4;
                     break;
                 case 0xD7:
@@ -2243,7 +2250,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xD6:
-                    Memory::writeByte(HL, Memory::readByte(HL) | 0x04);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) | 0x04);
                     totalCycles += 4;
                     break;
                 case 0xDF:
@@ -2275,7 +2282,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xDE:
-                    Memory::writeByte(HL, Memory::readByte(HL) | 0x08);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) | 0x08);
                     totalCycles += 4;
                     break;
                 case 0xE7:
@@ -2307,7 +2314,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xE6:
-                    Memory::writeByte(HL, Memory::readByte(HL) | 0x10);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) | 0x10);
                     totalCycles += 4;
                     break;
                 case 0xEF:
@@ -2339,7 +2346,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xEE:
-                    Memory::writeByte(HL, Memory::readByte(HL) | 0x20);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) | 0x20);
                     totalCycles += 4;
                     break;
                 case 0xF7:
@@ -2371,7 +2378,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xF6:
-                    Memory::writeByte(HL, Memory::readByte(HL) | 0x40);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) | 0x40);
                     totalCycles += 4;
                     break;
                 case 0xFF:
@@ -2403,7 +2410,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xFE:
-                    Memory::writeByte(HL, Memory::readByte(HL) | 0x80);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) | 0x80);
                     totalCycles += 4;
                     break;
 
@@ -2437,7 +2444,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x86:
-                    Memory::writeByte(HL, Memory::readByte(HL) & 0xFE);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) & 0xFE);
                     totalCycles += 4;
                     break;
                 case 0x8F:
@@ -2469,7 +2476,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x8E:
-                    Memory::writeByte(HL, Memory::readByte(HL) & 0xFD);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) & 0xFD);
                     totalCycles += 4;
                     break;
                 case 0x97:
@@ -2501,7 +2508,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x96:
-                    Memory::writeByte(HL, Memory::readByte(HL) & 0xFB);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) & 0xFB);
                     totalCycles += 4;
                     break;
                 case 0x9F:
@@ -2533,7 +2540,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x9E:
-                    Memory::writeByte(HL, Memory::readByte(HL) & 0xF7);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) & 0xF7);
                     totalCycles += 4;
                     break;
                 case 0xA7:
@@ -2565,7 +2572,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xA6:
-                    Memory::writeByte(HL, Memory::readByte(HL) & 0xEF);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) & 0xEF);
                     totalCycles += 4;
                     break;
                 case 0xAF:
@@ -2597,7 +2604,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xAE:
-                    Memory::writeByte(HL, Memory::readByte(HL) & 0xDF);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) & 0xDF);
                     totalCycles += 4;
                     break;
                 case 0xB7:
@@ -2629,7 +2636,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xB6:
-                    Memory::writeByte(HL, Memory::readByte(HL) & 0xBF);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) & 0xBF);
                     totalCycles += 4;
                     break;
                 case 0xBF:
@@ -2661,7 +2668,7 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0xBE:
-                    Memory::writeByte(HL, Memory::readByte(HL) & 0x7F);
+                    CPU::mem->writeByte(HL, CPU::mem->readByte(HL) & 0x7F);
                     totalCycles += 4;
                     break;
 
@@ -2702,8 +2709,8 @@ void CPU::cpuStep() {
                     totalCycles += 2;
                     break;
                 case 0x36:
-                    Memory::writeByte(HL, ((Memory::readByte(HL) & 0xF0) >> 4) | ((Memory::readByte(HL) & 0x0F) << 4));
-                    AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)));
+                    CPU::mem->writeByte(HL, ((CPU::mem->readByte(HL) & 0xF0) >> 4) | ((CPU::mem->readByte(HL) & 0x0F) << 4));
+                    AF = LD_nN_n(AF, ZERO_S(CPU::mem->readByte(HL)));
                     totalCycles += 4;
                     break;
 

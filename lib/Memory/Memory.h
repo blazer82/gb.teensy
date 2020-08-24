@@ -19,7 +19,9 @@
 #pragma once
 
 #include <sys/_stdint.h>
-#include "../Cartridge/Cartridge.h"
+#include "Cartridge.h"
+#include "NoMBC.h"
+#include "MBC1.h"
 
 /*      Interrupts      */
 // IME: Interrupt Master Enable Flag(W)
@@ -157,7 +159,7 @@
 // External RAM
 // 0xA000 - 0xBFFF
 // Optional, sometimes in cartridge. Banked
-#define MEM_RAM_EXTERNAL  RAM_BOT
+#define MEM_RAM_EXTERNAL  0xA000
 
 // Work RAM
 // Two banks, 0xC000 - 0xCFFF and 0xD000 - 0xDFFF
@@ -169,6 +171,19 @@
 // WRAM at -0x2000 bytes 
 #define MEM_RAM_ECHO      0xE000
 
+// Sprite Attribute Table (OAM)
+#define MEM_SPRITE_ATTR_TABLE   0xFE00
+
+#define MEM_UNUSABLE    0xFEA0
+
+// I/O Registers
+#define MEM_IO_REGS     0xFF00
+
+// High RAM
+#define MEM_HIGH_RAM    0xFF80
+
+// Interrupts Enable Register (IE)
+#define MEM_INT_EN_REG  0xFFFF
 
 /*      IRQ Bits        */
 #define IRQ_VBLANK      0x01
@@ -184,17 +199,34 @@
 
 class Memory {
    public:
-    static void initMemory();
+    void initMemory(const char* romName);
 
-    static void writeByte(const unsigned int location, const uint8_t data);
-    static void writeByteInternal(const unsigned int location, const uint8_t data, const bool internal);
-    static uint8_t readByte(const unsigned int location);
+    void writeByte(uint16_t location, uint8_t data);
+    void writeByteInternal(uint16_t location, uint8_t data, bool internal);
+    uint8_t readByte(uint16_t location);
 
-    static void interrupt(const uint8_t flag);
+    void interrupt(const uint8_t flag);
 
    protected:
    private:
-    static uint8_t memory[32768];
-    static bool mbc1_mode;
-    static uint8_t romBank;
+    // Video RAM
+    // Addr: MEM_VRAM
+    uint8_t vram[0x2000];
+    // Work RAM (both banks)
+    // Addr: MEM_RAM_INTERNAL
+    uint8_t wram[0x2000];
+    // Sprite Attribute Table (OAM)
+    // Addr: MEM_SPRITE_ATTR_TABLE
+    uint8_t oam[0xA0];
+    // I/O Registers
+    // Addr: MEM_IO_REGS
+    uint8_t ioreg[0x80];
+    // High RAM
+    // Addr: MEM_HIGH_RAM
+    uint8_t hram[0x7F];
+    // Interrupt Enable Register (IE)
+    // Addr: MEM_INT_EN_REG
+    uint8_t iereg;
+    // Game Cart
+    Cartridge* cart;
 };

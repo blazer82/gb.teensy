@@ -19,9 +19,11 @@
 #pragma once
 
 #include <sys/_stdint.h>
+#include "Memory.h"
 
 class CPU {
    public:
+    static void setMemoryHandle(Memory* memHandle);
     static volatile bool cpuEnabled;
     static volatile uint64_t totalCycles;
 
@@ -35,6 +37,9 @@ class CPU {
     static uint16_t popStack();
 
    private:
+    // Handle to Memory
+    static Memory* mem;
+
     // Registers
     static uint16_t AF;
     static uint16_t BC;

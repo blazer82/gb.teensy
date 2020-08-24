@@ -33,6 +33,10 @@
 uint16_t PPU::frames[2][160 * 144] = {{0}, {0}};
 uint64_t PPU::ticks = 0;
 uint8_t PPU::originX = 0, PPU::originY = 0, PPU::lcdc = 0, PPU::lcdStatus = 0;
+Memory* PPU::mem = 0;
+void PPU::setMemoryHandle(Memory* memHandle){
+    PPU::mem = memHandle;
+}
 
 void PPU::getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t originX, const uint8_t originY) {
     memset(frame + y * 160, 0x33, sizeof(uint16_t) * 160);
@@ -42,9 +46,9 @@ void PPU::getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t o
     uint8_t tileLineY = y - tilePosY;
 
     for (uint8_t i = 0; i < 20; i++) {
-        tileIndex = Memory::readByte(MEM_VRAM_MAP1 + i + 32 * (tilePosY / 8));
-        tileLineL = Memory::readByte(MEM_VRAM_TILES + tileIndex * 16 + tileLineY * 2);
-        tileLineU = Memory::readByte(MEM_VRAM_TILES + tileIndex * 16 + tileLineY * 2 + 1);
+        tileIndex = PPU::mem->readByte(MEM_VRAM_MAP1 + i + 32 * (tilePosY / 8));
+        tileLineL = PPU::mem->readByte(MEM_VRAM_TILES + tileIndex * 16 + tileLineY * 2);
+        tileLineU = PPU::mem->readByte(MEM_VRAM_TILES + tileIndex * 16 + tileLineY * 2 + 1);
 
         for (int8_t c = 0; c < 8; c++) {
             frame[y * 160 + i * 8 + c] = (((tileLineU >> (7 - c)) << 1) & 0x2) | ((tileLineL >> (7 - c)) & 0x1);
@@ -58,15 +62,15 @@ void PPU::getSpritesForLine(const uint8_t y, uint16_t *frame) {
     int16_t spriteLineY, x;
 
     for (uint16_t i = 0xFE00; i < 0xFEA0; i += 4) {
-        spritePosY = Memory::readByte(i) - 16;
+        spritePosY = PPU::mem->readByte(i) - 16;
         spriteLineY = y - spritePosY;
         if (spriteLineY >= 0 && spriteLineY < 8) {
-            spritePosX = Memory::readByte(i + 1) - 8;
-            tileIndex = Memory::readByte(i + 2);
-            attributes = Memory::readByte(i + 3);
+            spritePosX = PPU::mem->readByte(i + 1) - 8;
+            tileIndex = PPU::mem->readByte(i + 2);
+            attributes = PPU::mem->readByte(i + 3);
 
-            tileLineL = Memory::readByte(MEM_VRAM_TILES + tileIndex * 16 + spriteLineY * 2);
-            tileLineU = Memory::readByte(MEM_VRAM_TILES + tileIndex * 16 + spriteLineY * 2 + 1);
+            tileLineL = PPU::mem->readByte(MEM_VRAM_TILES + tileIndex * 16 + spriteLineY * 2);
+            tileLineU = PPU::mem->readByte(MEM_VRAM_TILES + tileIndex * 16 + spriteLineY * 2 + 1);
 
             for (int8_t c = 0; c < 8; c++) {
                 x = spritePosX + c;
@@ -88,21 +92,21 @@ void PPU::mapColorsForFrame(uint16_t *frame) {
 }
 
 void PPU::ppuStep(FT81x &ft81x) {
-    uint8_t y = Memory::readByte(MEM_LCD_Y) % 152;
+    uint8_t y = PPU::mem->readByte(MEM_LCD_Y) % 152;
     static uint8_t sendingFrame = 1;
     static uint8_t calculatingFrame = 0;
 
     for (; ticks < CPU::totalCycles; ticks++) {
         if (ticks % 116 == 0) {
-            lcdc = Memory::readByte(MEM_LCDC);
-            lcdStatus = Memory::readByte(MEM_LCD_STATUS);
+            lcdc = PPU::mem->readByte(MEM_LCDC);
+            lcdStatus = PPU::mem->readByte(MEM_LCD_STATUS);
 
             if ((lcdc & 0x80) == 0x80) {
                 y = (y + 1) % 152;
 
-                Memory::writeByte(MEM_LCD_Y, y);
-                originY = Memory::readByte(MEM_LCD_SCROLL_Y);
-                originX = Memory::readByte(MEM_LCD_SCROLL_X);
+                PPU::mem->writeByte(MEM_LCD_Y, y);
+                originY = PPU::mem->readByte(MEM_LCD_SCROLL_Y);
+                originX = PPU::mem->readByte(MEM_LCD_SCROLL_X);
 
                 if (y < 144) {
                     // calculate line
@@ -114,10 +118,10 @@ void PPU::ppuStep(FT81x &ft81x) {
                         getSpritesForLine(y, frames[calculatingFrame]);
                     }
 
-                    Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
+                    PPU::mem->writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
                 } else if (y == 144) {
-                    Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
-                    Memory::interrupt(IRQ_VBLANK);
+                    PPU::mem->writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
+                    PPU::mem->interrupt(IRQ_VBLANK);
 
                     mapColorsForFrame(frames[calculatingFrame]);
 
@@ -127,7 +131,7 @@ void PPU::ppuStep(FT81x &ft81x) {
                     ft81x.writeGRAM(0, 2 * 160 * 144, (uint8_t *)frames[sendingFrame]);
                 }
             } else {
-                Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
+                PPU::mem->writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
             }
         }
     }

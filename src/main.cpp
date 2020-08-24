@@ -34,6 +34,11 @@ void setup() {
     SPI.begin();
 
     waitForKeyPress();
+    Memory* mem = new Memory;
+    mem->initMemory("game.rom");
+    PPU::setMemoryHandle(mem);
+    CPU::setMemoryHandle(mem);
+
 
     Serial.println("Enable display");
     ft81x.begin();
@@ -55,8 +60,6 @@ void setup() {
     ft81x.swapScreen();
 
     // waitForKeyPress();
-
-    Memory::initMemory();
     CPU::cpuEnabled = 1;
 }
 
