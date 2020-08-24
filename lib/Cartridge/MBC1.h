@@ -14,8 +14,9 @@
 class MBC1 : public Cartridge{
     public:
         MBC1(const char *romFile);
-        uint8_t readByte(uint16_t addr);
-        void writeByte(uint16_t addr, uint8_t data);
+        ~MBC1();
+        uint8_t readByte(uint16_t addr) override;
+        void writeByte(uint16_t addr, uint8_t data) override;
     private:
         // Enable/Disable the RAM
         uint8_t ramEnable;

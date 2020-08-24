@@ -10,6 +10,11 @@ NoMBC::NoMBC(const char *romFile) : Cartridge(romFile){
     }
 }
 
+NoMBC::~NoMBC(){
+    Serial.println("Deleting NoMBC");
+}
+
+
 uint8_t NoMBC::readByte(uint16_t addr){
     if(addr >= CART_RAM){
         if(ramSize != 0){

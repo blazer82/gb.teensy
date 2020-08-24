@@ -7,6 +7,8 @@ Cartridge::Cartridge(const char* romFile){
         Serial.println("SD Card failed, or not present");
         return;
     }
+    Serial.println("SD Card Initialized!");
+    
 
     dataFile = SD.open(romFile);
     if (dataFile) {
@@ -49,6 +51,10 @@ Cartridge::Cartridge(const char* romFile){
         Serial.println("Unable to read cartridge");
     }
 
+}
+
+Cartridge::~Cartridge(){
+    Serial.println("Deleting Cartridge");
 }
 
 uint8_t Cartridge::getCartCode(){

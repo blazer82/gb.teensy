@@ -10,8 +10,9 @@
 class NoMBC : public Cartridge{
     public:
         NoMBC(const char *romFile);
-        uint8_t readByte(uint16_t addr);
-        void writeByte(uint16_t addr, uint8_t data);
+        ~NoMBC();
+        uint8_t readByte(uint16_t addr) override;
+        void writeByte(uint16_t addr, uint8_t data) override;
     private:
         uint8_t* rom;
         uint8_t* ram;

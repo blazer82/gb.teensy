@@ -20,6 +20,10 @@ MBC1::MBC1(const char *romFile) : Cartridge(romFile){
     }
 }
 
+MBC1::~MBC1(){
+    Serial.println("Deleting MBC1");
+}
+
 uint8_t MBC1::readByte(uint16_t addr){
     // Handle reads from RAM
     if(addr >= CART_RAM){
