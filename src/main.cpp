@@ -35,7 +35,7 @@ void setup() {
 
     waitForKeyPress();
     Memory* mem = new Memory;
-    mem->initMemory("game.rom");
+    mem->initMemory("tetris.rom");
     PPU::setMemoryHandle(mem);
     CPU::setMemoryHandle(mem);
 
