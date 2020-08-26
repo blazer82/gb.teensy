@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <sys/_stdint.h>
+#include <Arduino.h>
 #include <FT81x.h>
 #include "../Memory/Memory.h"
 
