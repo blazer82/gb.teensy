@@ -22,11 +22,12 @@
 #include "Cartridge.h"
 #include "NoMBC.h"
 #include "MBC1.h"
+#include <Arduino.h>
 
 /*      Interrupts      */
 // IME: Interrupt Master Enable Flag(W)
 // 0 disables all interrupts, 1 enables all interrupts
-#define MEM_IRQ_ENABLE    0xFFFF
+#define MEM_IRQ_ENABLE          0xFFFF
 
 // IF: Interrupt Flag (R/W)
 // Bit 0:   V-Blank IRQ
@@ -34,7 +35,7 @@
 // Bit 2:   Timer IRQ
 // Bit 3:   Serial IRQ
 // Bit 4:   Joypad IRQ
-#define MEM_IRQ_FLAG      0xFF0F
+#define MEM_IRQ_FLAG            0xFF0F
 
 /*      Joypad Input    */
 // P1/JOYP: Joypad Input (R/W)
@@ -47,7 +48,7 @@
 // Bit 4:   Select Direction Keys
 // Bit 5:   Select Button Keys
 // Bit 6-7: Unused
-#define MEM_JOYPAD        0xFF00
+#define MEM_JOYPAD              0xFF00
 
 
 /*      LCD Registers    */
@@ -60,7 +61,7 @@
 // Bit 5:   Window Display Enable
 // Bit 6:   Window Tile Map Display Select (0=0x9800-0x9BFF, 1=0x9C00-0x9FFF)
 // Bit 7:   LCD Display Enable
-#define MEM_LCDC          0xFF40
+#define MEM_LCDC                0xFF40
 
 // STAT: LCD Status (R/W)
 // Bit 0-1: Mode Flag (Read Only)
@@ -74,51 +75,51 @@
 // Bit 5:   Mode 2 OAM Interrupt
 // Bit 6:   LYV=LY Coincidence Interrupt
 // Bit 7:   Unused
-#define MEM_LCD_STATUS    0xFF41
+#define MEM_LCD_STATUS          0xFF41
 
 // SCY: Scroll Y (R/W)
 // Y Position of the BG map to be displayed
-#define MEM_LCD_SCROLL_Y  0xFF42
+#define MEM_LCD_SCROLL_Y        0xFF42
 
 // SXC: Scroll X (R/W)
 // X Position of the BG map to be displayed
-#define MEM_LCD_SCROLL_X  0xFF43
+#define MEM_LCD_SCROLL_X        0xFF43
 
 // LYC: LCD Y Coordinate (R)
 // Vertical line currently being transferred to LCD driver (0-153). Writing resets
-#define MEM_LCD_Y         0xFF44
+#define MEM_LCD_Y               0xFF44
 
 // LYC: LY Compare
-#define MEM_LYC           0xFF45
+#define MEM_LCD_YC              0xFF45
 
 // WY: Window Y Position (R/W)
 // Y Position of the window area
-#define MEM_WY            0xFF4A
+#define MEM_WY                  0xFF4A
 
 // WX: Window X Position (R/W)
 // X Position of the window area
-#define MEM_WX            0xFF4B
+#define MEM_WX                  0xFF4B
 
 /* DMA Registers         */
 // DMA: DMA Transfer and Start Address (W)
 // Writing starts a DMA transfer
-#define MEM_DMA           0xFF46
+#define MEM_DMA                 0xFF46
 
 /*  Timer Registers     */
 // DIV: Divider Register (R/W)
 // Incremented at a rate of 16384 Hz. 
 // All writes reset to 0x0
-#define MEM_DIVIDER       0xFF04
+#define MEM_DIVIDER             0xFF04
 
 // TIMA: Timer Counter (R/W)
 // Incremented by clock frequency specified in TAC
 // When it overflows (>0xFF), reset to value in TMA
 // and generate an interrupt
-#define MEM_TIMA          0xFF05
+#define MEM_TIMA                0xFF05
 
 // TMA: Timer Modulo (R/W)
 // Set TIMA to this value when TIMA overflows
-#define MEM_TMA           0xFF06
+#define MEM_TMA                 0xFF06
 
 // TAC: Timer Control (R/W)
 // Bit 0-1  INULLnput Clock Select
@@ -127,75 +128,78 @@
 //  0b10    65536 Hz
 //  0b11    16384 Hz
 // Bit 2:   Timer Stop (0=Stop, 1=Start)
-#define MEM_TIMER_CONTROL 0xFF07
+#define MEM_TIMER_CONTROL       0xFF07
 
 /*      Memory Regions      */
 // Cartridge ROM
 // Not banked
 // 0x0000 - 0x3FFF
-#define MEM_ROM           0x0
+#define MEM_ROM                 0x0000
 
 // Banked Cartridge ROM
 // Banks can be changed
 // 0x4000 - 0x7FFF
-#define MEM_ROM_BANK      0x4000
+#define MEM_ROM_BANK            0x4000
 
 // VRAM
 // 0x8000 - 0x9FFF
-#define MEM_VRAM          0x8000
+#define MEM_VRAM                0x8000
 
 // Background Tile Map Numbers
 // Contains the numbers of the tiles to be displayed
-#define MEM_VRAM_TILES    0x8000
+#define MEM_VRAM_TILES          0x8000
 
 // Backgound Tile Map 1
 // 0x9800 - 0x9BFF
-#define MEM_VRAM_MAP1     0x9800
+#define MEM_VRAM_MAP1           0x9800
 
 // Backgound Tile Map 2
 // 0x9800 - 0x9FFF
-#define MEM_VRAM_MAP2     0x9C00
+#define MEM_VRAM_MAP2           0x9C00
 
 // External RAM
 // 0xA000 - 0xBFFF
 // Optional, sometimes in cartridge. Banked
-#define MEM_RAM_EXTERNAL  0xA000
+#define MEM_RAM_EXTERNAL        0xA000
 
 // Work RAM
 // Two banks, 0xC000 - 0xCFFF and 0xD000 - 0xDFFF
-#define MEM_RAM_INTERNAL  0xC000
+#define MEM_RAM_INTERNAL        0xC000
 
 // Echo RAM
 // 0xE000 - 0xFDFF
 // An echo of WRAM. Anything done here will be done in 
 // WRAM at -0x2000 bytes 
-#define MEM_RAM_ECHO      0xE000
+#define MEM_RAM_ECHO            0xE000
 
 // Sprite Attribute Table (OAM)
 #define MEM_SPRITE_ATTR_TABLE   0xFE00
 
-#define MEM_UNUSABLE    0xFEA0
+#define MEM_UNUSABLE            0xFEA0
 
 // I/O Registers
-#define MEM_IO_REGS     0xFF00
+#define MEM_IO_REGS             0xFF00
 
-// High RAM
-#define MEM_HIGH_RAM    0xFF80
+// High RAM 
+#define MEM_HIGH_RAM            0xFF80
 
 // Interrupts Enable Register (IE)
-#define MEM_INT_EN_REG  0xFFFF
+#define MEM_INT_EN_REG          0xFFFF
 
 /*      IRQ Bits        */
-#define IRQ_VBLANK      0x01
-#define IRQ_LCD_STAT    0x02
-#define IRQ_TIMER       0x04
-#define IRQ_SERIAL      0x08
-#define IRQ_JOYPAD      0x16
+#define IRQ_VBLANK              0x0001
+#define IRQ_LCD_STAT            0x0002
+#define IRQ_TIMER               0x0004
+#define IRQ_SERIAL              0x00008
+#define IRQ_JOYPAD              0x0010
 
 /*      Jump Vectors    */
-#define PC_START  0x0100
-#define PC_VBLANK 0x0040
-#define PC_TIMER  0x0050
+#define PC_START                0x0100
+#define PC_VBLANK               0x0040
+#define PC_LCD_STAT             0x0048
+#define PC_TIMER                0x0050
+#define PC_SERIAL               0x0058
+#define PC_JOYPAD               0x0060
 
 class Memory {
    public:
@@ -206,6 +210,8 @@ class Memory {
     uint8_t readByte(uint16_t location);
 
     void interrupt(const uint8_t flag);
+
+    static void getTitle(char* title);
 
    protected:
    private:
