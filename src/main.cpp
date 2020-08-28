@@ -78,6 +78,7 @@ void loop() {
     while (true) {
         CPU::cpuStep();
         PPU::ppuStep(ft81x);
+        APU::apuStep();
 
         uint8_t joypad = Memory::readByte(MEM_JOYPAD);
         if ((joypad & 0x10) == 0) {

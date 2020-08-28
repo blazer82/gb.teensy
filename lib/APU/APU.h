@@ -20,7 +20,8 @@
 
 #include <Arduino.h>
 
-#define AUDIO_OUT 7
+#define AUDIO_OUT1 7
+#define AUDIO_OUT2 6
 
 class APU {
    public:
@@ -28,8 +29,11 @@ class APU {
     static void apuStep();
 
    protected:
-    static IntervalTimer apuTimer;
-    static volatile bool state;
+    static IntervalTimer apuTimer1;
+    static IntervalTimer apuTimer2;
+
+    static void timer1Step();
+    static void timer2Step();
 
    private:
 };
