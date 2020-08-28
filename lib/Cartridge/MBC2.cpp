@@ -49,18 +49,44 @@ void MBC2::writeByte(uint16_t addr, uint8_t data){
     if(addr >= CART_RAM && addr <= MBC2_CART_RAM_TOP){
         // Make sure RAM is enabled and it exists
         if(ramEnable && ramBankCount > 0){
+            // Only the bottom four bits can be written to RAM
+            ramBank[addr] = data & 0xF;
+            return;
+        }
+        else{
+            return;
         }
     }
+
     // Handle writes to control registers
     // This write function ensures that all data written to control registers
     // is valid. Additional checking elsewhere is not needed
     // Manipulate the bank select register
     else if(addr >= MBC2_PRIMARY_BANK_REG && addr <= MBC2_PRIMARY_BANK_REG_TOP){
-
+        // LSb of upper address byte must be 1 to select a ROM bank
+        if(data & 0x100){
+            // Get the bank select bits from the lower 4 bits
+            romBankSelect = data & 0xf;
+            return
+        }
+        else{
+            return
+        }
     }
     // Manipulate the RAM enable register
     else if(addr >= MBC2_RAM_ENABLE_REG){
-        
+        // The docs are a little unclear on how this works. I assume that
+        // 0x0 will disable the RAM, any other value enables RAM, and in order
+        // to change states the 0x100 bit must not be set
+        if(data & 0x100){
+            return;
+        }
+        else if(data){
+            ramEnable = 1;
+        }
+        else{
+            ramEnable = 0;
+        }
     }
     // MISRA
     else{

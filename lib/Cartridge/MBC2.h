@@ -8,6 +8,8 @@
 // Control Register Addresses
 #define MBC2_RAM_ENABLE_REG          0x0000
 #define MBC2_PRIMARY_BANK_REG        0x2000
+#define MBC2_PRIMARY_BANK_REG_TOP    0x4000
+
 
 // MBC2 Has significantly less RAM than can fit in the memory map
 #define MBC2_CART_RAM_TOP            0xA200
