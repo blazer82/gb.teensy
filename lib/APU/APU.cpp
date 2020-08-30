@@ -23,7 +23,7 @@
 IntervalTimer APU::apuTimer1;
 IntervalTimer APU::apuTimer2;
 
-const uint8_t duty50 = 0x87;
+const uint8_t duty[] = {0x01, 0x81, 0x87, 0x7E};
 volatile uint8_t i1 = 0;
 volatile uint8_t i2 = 0;
 
@@ -33,6 +33,11 @@ volatile uint16_t currentSquare2Freq = 0;
 void APU::begin() {
     pinMode(AUDIO_OUT1, OUTPUT);
     pinMode(AUDIO_OUT2, OUTPUT);
+
+    // Setup PWM resolution and frequency according to https://www.pjrc.com/teensy/td_pulse.html
+    analogWriteResolution(4);
+    analogWriteFrequency(AUDIO_OUT1, 9375000);
+    analogWriteFrequency(AUDIO_OUT2, 9375000);
 
     APU::apuTimer1.begin(APU::timer1Step, 1000000);
     APU::apuTimer2.begin(APU::timer2Step, 1000000);
@@ -52,13 +57,15 @@ void APU::apuStep() {
 }
 
 void APU::timer1Step() {
-    digitalWriteFast(AUDIO_OUT1, (duty50 >> i1) & 1);
+    const uint8_t dutyIndex = Memory::readByte(MEM_SOUND_NR11) >> 6;
+    analogWrite(AUDIO_OUT1, ((duty[dutyIndex] >> i1) & 1) * 0xF);
     i1++;
     i1 %= 8;
 }
 
 void APU::timer2Step() {
-    digitalWriteFast(AUDIO_OUT2, (duty50 >> i2) & 1);
+    const uint8_t dutyIndex = Memory::readByte(MEM_SOUND_NR11) >> 6;
+    analogWrite(AUDIO_OUT2, ((duty[dutyIndex] >> i2) & 1) * 0xF);
     i2++;
     i2 %= 8;
 }
