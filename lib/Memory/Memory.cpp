@@ -71,6 +71,16 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             }
             break;
 
+        // Sound length (https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Length_Counter)
+        case MEM_SOUND_NR11:
+        case MEM_SOUND_NR21:
+            if (internal) {
+                memory[location - 0x8000] = data;
+            } else {
+                memory[location - 0x8000] = data | 0x3F;
+            }
+            break;
+
         default:
             // TODO: RAM Echo (seems to break things tho)
             // TODO: Switchable RAM banks

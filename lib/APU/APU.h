@@ -31,9 +31,13 @@ class APU {
    protected:
     static IntervalTimer apuTimer1;
     static IntervalTimer apuTimer2;
+    static IntervalTimer lengthTimer;
+    static IntervalTimer envelopeTimer;
 
     static void timer1Step();
     static void timer2Step();
+    static void lengthUpdate();
+    static void envelopeUpdate();
 
    private:
 };
