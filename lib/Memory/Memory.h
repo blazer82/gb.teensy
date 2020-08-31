@@ -22,6 +22,7 @@
 #include "Cartridge.h"
 #include "NoMBC.h"
 #include "MBC1.h"
+#include "MBC2.h"
 #include <Arduino.h>
 
 /*      Interrupts      */

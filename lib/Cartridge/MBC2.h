@@ -7,6 +7,7 @@
 
 // Control Register Addresses
 #define MBC2_RAM_ENABLE_REG          0x0000
+#define MBC2_RAM_ENABLE_REG_TOP      0x1FFF
 #define MBC2_PRIMARY_BANK_REG        0x2000
 #define MBC2_PRIMARY_BANK_REG_TOP    0x4000
 
