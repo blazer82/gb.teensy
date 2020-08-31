@@ -186,6 +186,9 @@ void Memory::initMemory(const char* romFile) {
     else if(mbcType == USES_MBC1){
         cart = new MBC1(romFile);
     }
+    else if(mbcType == USES_MBC2){
+        cart = new MBC2(romFile);
+    }
     else{
         Serial.printf("MBC type 0x%x is currently not supported\n");
     }

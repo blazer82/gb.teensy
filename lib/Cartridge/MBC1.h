@@ -6,10 +6,10 @@
 #include <Arduino.h>
 
 // Control Register Addresses
-#define RAM_ENABLE_REG          0x0000
-#define PRIMARY_BANK_REG        0x2000
-#define SECONDARY_BANK_REG      0x4000
-#define BANKING_MODE_SEL_REG    0x6000
+#define MBC1_RAM_ENABLE_REG          0x0000
+#define MBC1_PRIMARY_BANK_REG        0x2000
+#define MBC1_SECONDARY_BANK_REG      0x4000
+#define MBC1_BANKING_MODE_SEL_REG    0x6000
 
 class MBC1 : public Cartridge{
     public:

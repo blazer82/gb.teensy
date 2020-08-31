@@ -111,7 +111,7 @@ void MBC1::writeByte(uint16_t addr, uint8_t data){
     // This write function ensures that all data written to control registers
     // is valid. Additional checking elsewhere is not needed
     // Manipulate the bank mode select register
-    else if(addr >= BANKING_MODE_SEL_REG){
+    else if(addr >= MBC1_BANKING_MODE_SEL_REG){
         // Bank mode select only effects large RAM and large ROM carts
         // Don't do anything otherwise
         if(romBankCount > 32 || ramBankCount > 1){
@@ -121,7 +121,7 @@ void MBC1::writeByte(uint16_t addr, uint8_t data){
         return;
     }
     // Manipulate the secondary bank bits control register
-    else if(addr >= SECONDARY_BANK_REG){
+    else if(addr >= MBC1_SECONDARY_BANK_REG){
         // Handle large ROM carts
         if (romBankCount > 32){
             // Mask off data to be two bits
@@ -162,7 +162,7 @@ void MBC1::writeByte(uint16_t addr, uint8_t data){
         return;
     }
     // Manipulate RAM enable control register
-    if(addr >= RAM_ENABLE_REG){
+    if(addr >= MBC1_RAM_ENABLE_REG){
         // If 0xA is in the lower 4 bits, enable RAM
         if ((data & 0xF) == 0xA){
             ramEnable = 1;
