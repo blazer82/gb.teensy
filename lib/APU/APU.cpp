@@ -48,8 +48,8 @@ void APU::begin() {
 }
 
 void APU::apuStep() {
-    const uint16_t square1Freq = ((Memory::readByte(MEM_SOUND_NR14) && 0x3) << 8) | Memory::readByte(MEM_SOUND_NR13);
-    const uint16_t square2Freq = ((Memory::readByte(MEM_SOUND_NR24) && 0x3) << 8) | Memory::readByte(MEM_SOUND_NR23);
+    const uint16_t square1Freq = 0x20000 / (0x800 - (((Memory::readByte(MEM_SOUND_NR14) & 0x7) << 8) | Memory::readByte(MEM_SOUND_NR13)));
+    const uint16_t square2Freq = 0x20000 / (0x800 - (((Memory::readByte(MEM_SOUND_NR24) & 0x7) << 8) | Memory::readByte(MEM_SOUND_NR23)));
 
     if (currentSquare1Freq != square1Freq) {
         currentSquare1Freq = square1Freq;
