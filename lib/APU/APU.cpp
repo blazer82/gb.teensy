@@ -22,12 +22,15 @@
 
 IntervalTimer APU::apuTimer1;
 IntervalTimer APU::apuTimer2;
+IntervalTimer APU::sweepTimer;
 IntervalTimer APU::lengthTimer;
 IntervalTimer APU::envelopeTimer;
 
 const uint8_t duty[] = {0x01, 0x81, 0x87, 0x7E};
 volatile uint8_t i1 = 0;
 volatile uint8_t i2 = 0;
+
+volatile uint8_t sweepStep = 0;
 
 volatile uint16_t currentSquare1Freq = 0;
 volatile uint16_t currentSquare2Freq = 0;
@@ -43,6 +46,7 @@ void APU::begin() {
 
     APU::apuTimer1.begin(APU::timer1Step, 1000000);
     APU::apuTimer2.begin(APU::timer2Step, 1000000);
+    APU::sweepTimer.begin(APU::sweepUpdate, 7813);
     APU::lengthTimer.begin(APU::lengthUpdate, 3096);
     APU::envelopeTimer.begin(APU::envelopeUpdate, 15630);
 }
@@ -105,6 +109,29 @@ void APU::timer2Step() {
         i2 %= 8;
     } else {
         analogWrite(AUDIO_OUT2, 0);
+    }
+}
+
+void APU::sweepUpdate() {
+    const uint8_t sweep = Memory::readByte(MEM_SOUND_NR10);
+    const uint8_t sweepTime = (sweep >> 4) & 0x7;
+    const bool increase = (sweep & 0x8) == 0;
+    const uint8_t sweepNumber = sweep & 0x7;
+
+    if (sweepTime != 0) {
+        sweepStep++;
+
+        if ((sweepStep % sweepTime) == 0) {
+            const uint16_t frequency = ((Memory::readByte(MEM_SOUND_NR14) & 0x7) << 8) | Memory::readByte(MEM_SOUND_NR13);
+            const uint16_t newFrequency = increase ? (frequency << sweepNumber) : (frequency >> sweepNumber);
+            if (newFrequency == 0 || newFrequency > 0x7FF) {
+                Memory::writeByteInternal(MEM_SOUND_NR13, 0, true);
+                Memory::writeByteInternal(MEM_SOUND_NR14, Memory::readByte(MEM_SOUND_NR14) & 0xFC, true);
+            } else {
+                Memory::writeByteInternal(MEM_SOUND_NR13, newFrequency & 0xF, true);
+                Memory::writeByteInternal(MEM_SOUND_NR14, ((newFrequency >> 8) & 0x3) | (Memory::readByte(MEM_SOUND_NR14) & 0xFC), true);
+            }
+        }
     }
 }
 
