@@ -20,8 +20,8 @@
 
 #include <Arduino.h>
 
-#define AUDIO_OUT1 7
-#define AUDIO_OUT2 6
+#define AUDIO_OUT_SQUARE1 7
+#define AUDIO_OUT_SQUARE2 6
 
 class APU {
    public:
@@ -29,14 +29,19 @@ class APU {
     static void apuStep();
 
    protected:
-    static IntervalTimer apuTimer1;
-    static IntervalTimer apuTimer2;
+    static IntervalTimer squareTimer[2];
     static IntervalTimer sweepTimer;
     static IntervalTimer lengthTimer;
     static IntervalTimer envelopeTimer;
 
-    static void timer1Step();
-    static void timer2Step();
+    const static uint8_t duty[4];
+
+    volatile static uint8_t currentSquareFrequency[2];
+    volatile static uint8_t dutyStep[2];
+    volatile static uint8_t sweepStep;
+
+    static void squareUpdate1();
+    static void squareUpdate2();
     static void sweepUpdate();
     static void lengthUpdate();
     static void envelopeUpdate();

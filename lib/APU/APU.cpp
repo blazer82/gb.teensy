@@ -20,95 +20,85 @@
 
 #include "Memory.h"
 
-IntervalTimer APU::apuTimer1;
-IntervalTimer APU::apuTimer2;
+IntervalTimer APU::squareTimer[];
 IntervalTimer APU::sweepTimer;
 IntervalTimer APU::lengthTimer;
 IntervalTimer APU::envelopeTimer;
 
-const uint8_t duty[] = {0x01, 0x81, 0x87, 0x7E};
-volatile uint8_t i1 = 0;
-volatile uint8_t i2 = 0;
+const uint8_t APU::duty[] = {0x01, 0x81, 0x87, 0x7E};
 
-volatile uint8_t sweepStep = 0;
+volatile uint8_t APU::currentSquareFrequency[] = {0, 0};
+volatile uint8_t APU::dutyStep[] = {0, 0};
 
-volatile uint16_t currentSquare1Freq = 0;
-volatile uint16_t currentSquare2Freq = 0;
+volatile uint8_t APU::sweepStep = 0;
 
 void APU::begin() {
-    pinMode(AUDIO_OUT1, OUTPUT);
-    pinMode(AUDIO_OUT2, OUTPUT);
+    pinMode(AUDIO_OUT_SQUARE1, OUTPUT);
+    pinMode(AUDIO_OUT_SQUARE2, OUTPUT);
 
     // Setup PWM resolution and frequency according to https://www.pjrc.com/teensy/td_pulse.html
-    analogWriteResolution(4);
-    analogWriteFrequency(AUDIO_OUT1, 9375000);
-    analogWriteFrequency(AUDIO_OUT2, 9375000);
+    analogWriteResolution(8);
+    analogWriteFrequency(AUDIO_OUT_SQUARE1, 9375000);
+    analogWriteFrequency(AUDIO_OUT_SQUARE2, 9375000);
 
-    APU::apuTimer1.begin(APU::timer1Step, 1000000);
-    APU::apuTimer2.begin(APU::timer2Step, 1000000);
+    APU::squareTimer[0].begin(APU::squareUpdate1, 1000000);
+    APU::squareTimer[1].begin(APU::squareUpdate2, 1000000);
     APU::sweepTimer.begin(APU::sweepUpdate, 7813);
     APU::lengthTimer.begin(APU::lengthUpdate, 3096);
     APU::envelopeTimer.begin(APU::envelopeUpdate, 15630);
 }
 
 void APU::apuStep() {
-    const uint16_t square1Freq = 0x20000 / (0x800 - (((Memory::readByte(MEM_SOUND_NR14) & 0x7) << 8) | Memory::readByte(MEM_SOUND_NR13)));
-    const uint16_t square2Freq = 0x20000 / (0x800 - (((Memory::readByte(MEM_SOUND_NR24) & 0x7) << 8) | Memory::readByte(MEM_SOUND_NR23)));
+    const uint16_t squareFreq[] = {(uint16_t)(0x20000 / (0x800 - (((Memory::readByte(MEM_SOUND_NR14) & 0x7) << 8) | Memory::readByte(MEM_SOUND_NR13)))),
+                                   (uint16_t)(0x20000 / (0x800 - (((Memory::readByte(MEM_SOUND_NR24) & 0x7) << 8) | Memory::readByte(MEM_SOUND_NR23))))};
 
-    if (currentSquare1Freq != square1Freq) {
-        currentSquare1Freq = square1Freq;
+    for (uint8_t i = 0; i < 2; i++) {
+        if (APU::currentSquareFrequency[i] != squareFreq[i]) {
+            APU::currentSquareFrequency[i] = squareFreq[i];
 
-        if (square1Freq == 0) {
-            APU::apuTimer1.update(1000000);
-            analogWrite(AUDIO_OUT1, 0);
-        } else {
-            APU::apuTimer1.update(1UL * 125000 / (uint32_t)square1Freq);
-        }
-    }
-
-    if (currentSquare2Freq != square2Freq) {
-        currentSquare2Freq = square2Freq;
-
-        if (square2Freq == 0) {
-            APU::apuTimer1.update(1000000);
-            analogWrite(AUDIO_OUT2, 0);
-        } else {
-            APU::apuTimer2.update(1UL * 125000 / (uint32_t)square2Freq);
+            if (squareFreq[i] == 0) {
+                APU::squareTimer[i].update(1000000);
+                analogWrite(i == 0 ? AUDIO_OUT_SQUARE1 : AUDIO_OUT_SQUARE2, 0);
+            } else {
+                APU::squareTimer[i].update(125000 / (uint32_t)squareFreq[i]);
+            }
         }
     }
 }
 
-void APU::timer1Step() {
+void APU::squareUpdate1() {
     const bool lengthEnable = (Memory::readByte(MEM_SOUND_NR14) & 0x40) != 0;
     const uint8_t length = lengthEnable ? Memory::readByte(MEM_SOUND_NR11) & 0x3F : 1;
 
     if (length > 0) {
         const uint8_t dutyIndex = Memory::readByte(MEM_SOUND_NR11) >> 6;
         const uint8_t envelopeVolume = Memory::readByte(MEM_SOUND_NR12) >> 4;
-        const uint8_t mixerVolume = (Memory::readByte(MEM_SOUND_NR50) & 0x7) * (Memory::readByte(MEM_SOUND_NR51) & 0x1) +
-                                    (Memory::readByte(MEM_SOUND_NR50) >> 4) * (Memory::readByte(MEM_SOUND_NR51) & 0x10);
-        analogWrite(AUDIO_OUT1, ((duty[dutyIndex] >> i1) & 1) * 2 * envelopeVolume * mixerVolume);
-        i1++;
-        i1 %= 8;
+        const bool so1 = (Memory::readByte(MEM_SOUND_NR51) & 0x1) != 0;
+        const bool so2 = (Memory::readByte(MEM_SOUND_NR51) & 0x10) != 0;
+        const uint8_t mixerVolume = ((Memory::readByte(MEM_SOUND_NR50) & 0x7) * so1 + ((Memory::readByte(MEM_SOUND_NR50) >> 4 & 0x7)) * so2) / (so1 + so2);
+        analogWrite(AUDIO_OUT_SQUARE1, ((duty[dutyIndex] >> APU::dutyStep[0]) & 1) * envelopeVolume * mixerVolume);
+        APU::dutyStep[0]++;
+        APU::dutyStep[0] %= 8;
     } else {
-        analogWrite(AUDIO_OUT1, 0);
+        analogWrite(AUDIO_OUT_SQUARE1, 0);
     }
 }
 
-void APU::timer2Step() {
+void APU::squareUpdate2() {
     const bool lengthEnable = (Memory::readByte(MEM_SOUND_NR24) & 0x40) != 0;
     const uint8_t length = lengthEnable ? Memory::readByte(MEM_SOUND_NR21) & 0x3F : 1;
 
     if (length > 0) {
         const uint8_t dutyIndex = Memory::readByte(MEM_SOUND_NR21) >> 6;
         const uint8_t envelopeVolume = Memory::readByte(MEM_SOUND_NR22) >> 4;
-        const uint8_t mixerVolume = (Memory::readByte(MEM_SOUND_NR50) & 0x7) * (Memory::readByte(MEM_SOUND_NR51) & 0x2) +
-                                    (Memory::readByte(MEM_SOUND_NR50) >> 4) * (Memory::readByte(MEM_SOUND_NR51) & 0x20);
-        analogWrite(AUDIO_OUT2, ((duty[dutyIndex] >> i2) & 1) * 2 * envelopeVolume * mixerVolume);
-        i2++;
-        i2 %= 8;
+        const bool so1 = (Memory::readByte(MEM_SOUND_NR51) & 0x1) != 0;
+        const bool so2 = (Memory::readByte(MEM_SOUND_NR51) & 0x10) != 0;
+        const uint8_t mixerVolume = ((Memory::readByte(MEM_SOUND_NR50) & 0x7) * so1 + ((Memory::readByte(MEM_SOUND_NR50) >> 4 & 0x7)) * so2) / (so1 + so2);
+        analogWrite(AUDIO_OUT_SQUARE2, ((duty[dutyIndex] >> APU::dutyStep[1]) & 1) * envelopeVolume * mixerVolume);
+        APU::dutyStep[1]++;
+        APU::dutyStep[1] %= 8;
     } else {
-        analogWrite(AUDIO_OUT2, 0);
+        analogWrite(AUDIO_OUT_SQUARE2, 0);
     }
 }
 
@@ -119,9 +109,9 @@ void APU::sweepUpdate() {
     const uint8_t sweepNumber = sweep & 0x7;
 
     if (sweepTime != 0) {
-        sweepStep++;
+        APU::sweepStep++;
 
-        if ((sweepStep % sweepTime) == 0) {
+        if ((APU::sweepStep % sweepTime) == 0) {
             const uint16_t frequency = ((Memory::readByte(MEM_SOUND_NR14) & 0x7) << 8) | Memory::readByte(MEM_SOUND_NR13);
             const uint16_t newFrequency = increase ? (frequency << sweepNumber) : (frequency >> sweepNumber);
             if (newFrequency == 0 || newFrequency > 0x7FF) {
