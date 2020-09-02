@@ -5,7 +5,7 @@ NoMBC::NoMBC(const char *romFile) : Cartridge(romFile){
     rom = (uint8_t*)malloc(ROM_BANK_SIZE * 2 * sizeof(uint8_t));
 
     // Write the ROM data to memory
-    Serial.println("Loading ROM into memory...");
+    Serial.printf("Loading %s into memory...\n", romFile);
     File dataFile = SD.open(romFile);
     if (dataFile) {
         for(uint16_t i = 0; i < ROM_BANK_SIZE * 2; i++){
