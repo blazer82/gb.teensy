@@ -44,8 +44,8 @@ void APU::begin() {
     APU::squareTimer[0].begin(APU::squareUpdate1, 1000000);
     APU::squareTimer[1].begin(APU::squareUpdate2, 1000000);
     APU::sweepTimer.begin(APU::sweepUpdate, 7813);
-    APU::lengthTimer.begin(APU::lengthUpdate, 3096);
-    APU::envelopeTimer.begin(APU::envelopeUpdate, 15630);
+    APU::lengthTimer.begin(APU::lengthUpdate, 3906);
+    APU::envelopeTimer.begin(APU::envelopeUpdate, 15625);
 }
 
 void APU::apuStep() {
@@ -68,7 +68,7 @@ void APU::apuStep() {
 
 void APU::squareUpdate1() {
     const bool lengthEnable = (Memory::readByte(MEM_SOUND_NR14) & 0x40) != 0;
-    const uint8_t length = lengthEnable ? Memory::readByte(MEM_SOUND_NR11) & 0x3F : 1;
+    const uint8_t length = lengthEnable ? 0x40 - (Memory::readByte(MEM_SOUND_NR11) & 0x3F) : 1;
 
     if (length > 0) {
         const uint8_t dutyIndex = Memory::readByte(MEM_SOUND_NR11) >> 6;
@@ -86,13 +86,13 @@ void APU::squareUpdate1() {
 
 void APU::squareUpdate2() {
     const bool lengthEnable = (Memory::readByte(MEM_SOUND_NR24) & 0x40) != 0;
-    const uint8_t length = lengthEnable ? Memory::readByte(MEM_SOUND_NR21) & 0x3F : 1;
+    const uint8_t length = lengthEnable ? 0x40 - (Memory::readByte(MEM_SOUND_NR21) & 0x3F) : 1;
 
     if (length > 0) {
         const uint8_t dutyIndex = Memory::readByte(MEM_SOUND_NR21) >> 6;
         const uint8_t envelopeVolume = Memory::readByte(MEM_SOUND_NR22) >> 4;
-        const bool so1 = (Memory::readByte(MEM_SOUND_NR51) & 0x1) != 0;
-        const bool so2 = (Memory::readByte(MEM_SOUND_NR51) & 0x10) != 0;
+        const bool so1 = (Memory::readByte(MEM_SOUND_NR51) & 0x2) != 0;
+        const bool so2 = (Memory::readByte(MEM_SOUND_NR51) & 0x20) != 0;
         const uint8_t mixerVolume = ((Memory::readByte(MEM_SOUND_NR50) & 0x7) * so1 + ((Memory::readByte(MEM_SOUND_NR50) >> 4 & 0x7)) * so2) / (so1 + so2);
         analogWrite(AUDIO_OUT_SQUARE2, ((duty[dutyIndex] >> APU::dutyStep[1]) & 1) * envelopeVolume * mixerVolume);
         APU::dutyStep[1]++;
@@ -130,16 +130,16 @@ void APU::lengthUpdate() {
     const bool lengthEnable2 = (Memory::readByte(MEM_SOUND_NR24) & 0x40) != 0;
 
     if (lengthEnable1) {
-        const uint8_t length = Memory::readByte(MEM_SOUND_NR11) & 0x3F;
+        const uint8_t length = 0x40 - (Memory::readByte(MEM_SOUND_NR11) & 0x3F);
         if (length > 0) {
-            Memory::writeByteInternal(MEM_SOUND_NR11, (Memory::readByte(MEM_SOUND_NR11) & 0xC0) | (length - 1), true);
+            Memory::writeByteInternal(MEM_SOUND_NR11, (Memory::readByte(MEM_SOUND_NR11) & 0xC0) | (0x40 - (length - 1)), true);
         }
     }
 
     if (lengthEnable2) {
-        const uint8_t length = Memory::readByte(MEM_SOUND_NR21) & 0x3F;
+        const uint8_t length = 0x40 - (Memory::readByte(MEM_SOUND_NR21) & 0x3F);
         if (length > 0) {
-            Memory::writeByteInternal(MEM_SOUND_NR21, (Memory::readByte(MEM_SOUND_NR21) & 0xC0) | (length - 1), true);
+            Memory::writeByteInternal(MEM_SOUND_NR21, (Memory::readByte(MEM_SOUND_NR21) & 0xC0) | (0x40 - (length - 1)), true);
         }
     }
 }
