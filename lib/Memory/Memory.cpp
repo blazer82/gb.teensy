@@ -21,6 +21,7 @@
 #include <Arduino.h>
 #include <string.h>
 
+#include "APU.h"
 #include "CPU.h"
 #include "Cartridge.h"
 
@@ -78,6 +79,24 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
                 memory[location - 0x8000] = data;
             } else {
                 memory[location - 0x8000] = data | 0x3F;
+            }
+            break;
+
+        // Sound channel enable
+        case MEM_SOUND_NR14:
+            memory[location - 0x8000] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerSquare1();
+                }
+            }
+            break;
+        case MEM_SOUND_NR24:
+            memory[location - 0x8000] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerSquare2();
+                }
             }
             break;
 
