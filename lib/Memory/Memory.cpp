@@ -72,13 +72,17 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             }
             break;
 
-        // Sound length (https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Length_Counter)
+        // Sound length counter
         case MEM_SOUND_NR11:
+            memory[location - 0x8000] = data;
+            if (!internal) {
+                APU::loadLength1();
+            }
+            break;
         case MEM_SOUND_NR21:
-            if (internal) {
-                memory[location - 0x8000] = data;
-            } else {
-                memory[location - 0x8000] = data | 0x3F;
+            memory[location - 0x8000] = data;
+            if (!internal) {
+                APU::loadLength2();
             }
             break;
 

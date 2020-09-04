@@ -30,6 +30,8 @@ class APU {
     static void apuStep();
     static void triggerSquare1();
     static void triggerSquare2();
+    static void loadLength1();
+    static void loadLength2();
 
    protected:
     static IntervalTimer squareTimer[2];
@@ -40,6 +42,7 @@ class APU {
     volatile static bool channelEnabled[2];
     volatile static uint8_t currentSquareFrequency[2];
     volatile static uint8_t dutyStep[2];
+    volatile static uint8_t lengthCounter[2];
     volatile static uint8_t sweepStep;
     volatile static uint8_t effectTimerCounter;
 
