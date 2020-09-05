@@ -30,26 +30,33 @@ class APU {
     static void apuStep();
     static void triggerSquare1();
     static void triggerSquare2();
+    static void triggerNoise();
     static void loadLength1();
     static void loadLength2();
+    static void loadLength4();
 
    protected:
     static IntervalTimer squareTimer[2];
     static IntervalTimer effectTimer;
+    static IntervalTimer noiseTimer;
 
     const static uint8_t duty[4];
+    const static uint8_t divisor[8];
 
-    volatile static bool channelEnabled[2];
+    volatile static bool channelEnabled[4];
     volatile static uint16_t currentSquareFrequency[2];
+    volatile static uint16_t currentNoiseFrequency;
     volatile static uint8_t dutyStep[2];
-    volatile static uint8_t lengthCounter[2];
-    volatile static uint8_t envelopeStep[2];
+    volatile static uint8_t lengthCounter[4];
+    volatile static uint8_t envelopeStep[4];
     volatile static uint16_t sweepFrequency;
     volatile static uint8_t sweepStep;
     volatile static uint8_t effectTimerCounter;
+    volatile static uint16_t noiseRegister;
 
     static void squareUpdate1();
     static void squareUpdate2();
+    static void noiseUpdate();
     static void effectUpdate();
 
     typedef union {
@@ -78,6 +85,15 @@ class APU {
         } bits;
         uint8_t value;
     } nrx2_register_t;
+
+    typedef union {
+        struct {
+            unsigned divisor : 3;
+            unsigned width : 1;
+            unsigned shift : 4;
+        } bits;
+        uint8_t value;
+    } nr43_register_t;
 
     typedef union {
         struct {

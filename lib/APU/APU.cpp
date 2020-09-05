@@ -22,19 +22,22 @@
 
 IntervalTimer APU::squareTimer[];
 IntervalTimer APU::effectTimer;
+IntervalTimer APU::noiseTimer;
 
 const uint8_t APU::duty[] = {0x01, 0x81, 0x87, 0x7E};
 
-volatile bool APU::channelEnabled[] = {0, 0};
+volatile bool APU::channelEnabled[] = {0, 0, 0, 0};
 volatile uint16_t APU::currentSquareFrequency[] = {0, 0};
+volatile uint16_t APU::currentNoiseFrequency = 0;
 volatile uint8_t APU::dutyStep[] = {0, 0};
-volatile uint8_t APU::lengthCounter[] = {0, 0};
-volatile uint8_t APU::envelopeStep[] = {0, 0};
+volatile uint8_t APU::lengthCounter[] = {0, 0, 0, 0};
+volatile uint8_t APU::envelopeStep[] = {0, 0, 0, 0};
 volatile uint16_t APU::sweepFrequency = 0;
 volatile uint8_t APU::sweepStep = 0;
 volatile uint8_t APU::effectTimerCounter = 0;
+volatile uint16_t APU::noiseRegister = 0xFFFF;
 
-const uint8_t divisor[] = {8, 16, 32, 48, 64, 80, 96, 112};
+const uint8_t APU::divisor[] = {8, 16, 32, 48, 64, 80, 96, 112};
 
 void APU::begin() {
     pinMode(AUDIO_OUT_SQUARE1, OUTPUT);
@@ -49,6 +52,7 @@ void APU::begin() {
 
     APU::squareTimer[0].begin(APU::squareUpdate1, 1000000);
     APU::squareTimer[1].begin(APU::squareUpdate2, 1000000);
+    APU::noiseTimer.begin(APU::noiseUpdate, 1000000);
     APU::effectTimer.begin(APU::effectUpdate, 1000000 / 256);
 }
 
@@ -73,11 +77,27 @@ void APU::apuStep() {
                 }
             }
         }
+
+        const nr43_register_t nr43 = {.value = Memory::readByte(MEM_SOUND_NR43)};
+        const uint16_t noiseFreq = 0x8000 / (APU::divisor[nr43.bits.divisor] << nr43.bits.shift);  // This calculation is probably wrong
+
+        if (APU::currentNoiseFrequency != noiseFreq) {
+            APU::currentNoiseFrequency = noiseFreq;
+
+            if (noiseFreq == 0) {
+                APU::noiseTimer.update(1000000);
+                analogWrite(AUDIO_OUT_NOISE, 0);
+            } else {
+                APU::noiseTimer.update(1000000 / noiseFreq);
+            }
+        }
     } else {
         APU::squareTimer[0].update(1000000);
         APU::squareTimer[1].update(1000000);
+        APU::noiseTimer.update(1000000);
         analogWrite(AUDIO_OUT_SQUARE1, 0);
         analogWrite(AUDIO_OUT_SQUARE2, 0);
+        analogWrite(AUDIO_OUT_NOISE, 0);
     }
 }
 
@@ -121,6 +141,33 @@ void APU::squareUpdate2() {
     }
 }
 
+void APU::noiseUpdate() {
+    const nrx4_register_t nrx4 = {.value = Memory::readByte(MEM_SOUND_NR44)};
+
+    if (APU::channelEnabled[3] && (!nrx4.bits.lengthEnable || APU::lengthCounter[3] > 0)) {
+        const nr43_register_t nr43 = {.value = Memory::readByte(MEM_SOUND_NR43)};
+
+        const bool xorBit = (APU::noiseRegister >> 1 & 0x1) ^ (APU::noiseRegister & 0x1);
+        APU::noiseRegister = (APU::noiseRegister >> 1) | (xorBit << 14);
+
+        if (nr43.bits.width) {
+            APU::noiseRegister = (APU::noiseRegister & 0xFFBF) | (xorBit << 6);
+        }
+
+        const nrx2_register_t envelope = {.value = Memory::readByte(MEM_SOUND_NR42)};
+        const nr50_register_t channelControl = {.value = Memory::readByte(MEM_SOUND_NR50)};
+        const nr51_register_t terminalControl = {.value = Memory::readByte(MEM_SOUND_NR51)};
+        const uint8_t mixerVolume = (channelControl.bits.terminal1Volume * terminalControl.bits.noiseTerminal1 +
+                                     channelControl.bits.terminal2Volume * terminalControl.bits.noiseTerminal2) /
+                                    (terminalControl.bits.noiseTerminal1 + terminalControl.bits.noiseTerminal2);
+
+        analogWrite(AUDIO_OUT_NOISE, !(APU::noiseRegister & 1) * envelope.bits.volume * mixerVolume);
+    } else {
+        APU::channelEnabled[3] = 0;
+        analogWrite(AUDIO_OUT_NOISE, 0);
+    }
+}
+
 void APU::effectUpdate() {
     noInterrupts();
     APU::effectTimerCounter++;
@@ -137,6 +184,13 @@ void APU::effectUpdate() {
         const nrx4_register_t nrx4 = {.value = Memory::readByte(MEM_SOUND_NR24)};
         if (nrx4.bits.lengthEnable && APU::lengthCounter[1] != 0) {
             APU::lengthCounter[1]--;
+        }
+    }
+
+    {
+        const nrx4_register_t nrx4 = {.value = Memory::readByte(MEM_SOUND_NR44)};
+        if (nrx4.bits.lengthEnable && APU::lengthCounter[3] != 0) {
+            APU::lengthCounter[3]--;
         }
     }
 
@@ -192,6 +246,22 @@ void APU::effectUpdate() {
                 }
             }
         }
+        {
+            APU::envelopeStep[3]++;
+            const nrx2_register_t envelope = {.value = Memory::readByte(MEM_SOUND_NR42)};
+
+            if (APU::envelopeStep[3] % envelope.bits.period == 0) {
+                if (envelope.bits.direction && envelope.bits.volume < 0xF) {
+                    const nrx2_register_t newEnvelope = {
+                        .bits = {.period = envelope.bits.period, .direction = envelope.bits.direction, .volume = envelope.bits.volume + 1U}};
+                    Memory::writeByteInternal(MEM_SOUND_NR42, newEnvelope.value, true);
+                } else if (!envelope.bits.direction && envelope.bits.volume > 0) {
+                    const nrx2_register_t newEnvelope = {
+                        .bits = {.period = envelope.bits.period, .direction = envelope.bits.direction, .volume = envelope.bits.volume - 1U}};
+                    Memory::writeByteInternal(MEM_SOUND_NR42, newEnvelope.value, true);
+                }
+            }
+        }
     }
     interrupts();
 }
@@ -212,6 +282,13 @@ void APU::triggerSquare2() {
     APU::channelEnabled[1] = 1;
 }
 
+void APU::triggerNoise() {
+    APU::loadLength4();
+    APU::envelopeStep[3] = 0;
+    APU::channelEnabled[3] = 1;
+    APU::noiseRegister = 0xFFFF;
+}
+
 void APU::loadLength1() {
     const nrx1_register_t nrx1 = {.value = Memory::readByte(MEM_SOUND_NR11)};
     APU::lengthCounter[0] = 0x40 - nrx1.bits.length;
@@ -220,4 +297,9 @@ void APU::loadLength1() {
 void APU::loadLength2() {
     const nrx1_register_t nrx1 = {.value = Memory::readByte(MEM_SOUND_NR21)};
     APU::lengthCounter[1] = 0x40 - nrx1.bits.length;
+}
+
+void APU::loadLength4() {
+    const nrx1_register_t nrx1 = {.value = Memory::readByte(MEM_SOUND_NR41)};
+    APU::lengthCounter[3] = 0x40 - nrx1.bits.length;
 }

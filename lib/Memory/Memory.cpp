@@ -103,6 +103,14 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
                 }
             }
             break;
+        case MEM_SOUND_NR44:
+            memory[location - 0x8000] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerNoise();
+                }
+            }
+            break;
 
         default:
             // TODO: RAM Echo (seems to break things tho)
