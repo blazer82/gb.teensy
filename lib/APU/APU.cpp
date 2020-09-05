@@ -26,10 +26,11 @@ IntervalTimer APU::effectTimer;
 const uint8_t APU::duty[] = {0x01, 0x81, 0x87, 0x7E};
 
 volatile bool APU::channelEnabled[] = {0, 0};
-volatile uint8_t APU::currentSquareFrequency[] = {0, 0};
+volatile uint16_t APU::currentSquareFrequency[] = {0, 0};
 volatile uint8_t APU::dutyStep[] = {0, 0};
 volatile uint8_t APU::lengthCounter[] = {0, 0};
 volatile uint8_t APU::envelopeStep[] = {0, 0};
+volatile uint16_t APU::sweepFrequency = 0;
 volatile uint8_t APU::sweepStep = 0;
 volatile uint8_t APU::effectTimerCounter = 0;
 
@@ -139,29 +140,23 @@ void APU::effectUpdate() {
         }
     }
 
-    /*if ((APU::effectTimerCounter % 2) == 0) {
+    if ((APU::effectTimerCounter % 2) == 0) {
         // Sweep update
-        const uint8_t sweep = Memory::readByte(MEM_SOUND_NR10);
-        const uint8_t sweepTime = (sweep >> 4) & 0x7;
-        const bool increase = (sweep & 0x8) == 0;
-        const uint8_t sweepNumber = sweep & 0x7;
+        const nr10_register_t nr10 = {.value = Memory::readByte(MEM_SOUND_NR10)};
 
-        if (sweepTime != 0) {
+        if (nr10.bits.time != 0 && nr10.bits.shift != 0) {
             APU::sweepStep++;
 
-            if ((APU::sweepStep % sweepTime) == 0) {
-                const uint16_t frequency = ((Memory::readByte(MEM_SOUND_NR14) & 0x7) << 8) | Memory::readByte(MEM_SOUND_NR13);
-                const uint16_t newFrequency = increase ? (frequency << sweepNumber) : (frequency >> sweepNumber);
-                if (newFrequency == 0 || newFrequency > 0x7FF) {
-                    Memory::writeByteInternal(MEM_SOUND_NR13, 0, true);
-                    Memory::writeByteInternal(MEM_SOUND_NR14, Memory::readByte(MEM_SOUND_NR14) & 0xFC, true);
-                } else {
+            if ((APU::sweepStep % nr10.bits.time) == 0) {
+                const uint16_t newFrequency = nr10.bits.direction ? (APU::sweepFrequency << nr10.bits.shift) : (APU::sweepFrequency >> nr10.bits.shift);
+                if (newFrequency > 0 && newFrequency < 0x7FF) {
+                    APU::sweepFrequency = newFrequency;
                     Memory::writeByteInternal(MEM_SOUND_NR13, newFrequency & 0xF, true);
                     Memory::writeByteInternal(MEM_SOUND_NR14, ((newFrequency >> 8) & 0x3) | (Memory::readByte(MEM_SOUND_NR14) & 0xFC), true);
                 }
             }
         }
-    }*/
+    }
 
     if ((APU::effectTimerCounter % 4) == 0) {
         // Envelope update
@@ -202,9 +197,13 @@ void APU::effectUpdate() {
 }
 
 void APU::triggerSquare1() {
+    const nrx4_register_t nr14 = {.value = Memory::readByte(MEM_SOUND_NR14)};
+
     APU::loadLength1();
     APU::envelopeStep[0] = 0;
     APU::channelEnabled[0] = 1;
+    APU::sweepStep = 0;
+    APU::sweepFrequency = (uint16_t)(0x20000 / (0x800 - ((nr14.bits.frequency << 8) | Memory::readByte(MEM_SOUND_NR13))));
 }
 
 void APU::triggerSquare2() {

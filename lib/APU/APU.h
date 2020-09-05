@@ -40,16 +40,27 @@ class APU {
     const static uint8_t duty[4];
 
     volatile static bool channelEnabled[2];
-    volatile static uint8_t currentSquareFrequency[2];
+    volatile static uint16_t currentSquareFrequency[2];
     volatile static uint8_t dutyStep[2];
     volatile static uint8_t lengthCounter[2];
     volatile static uint8_t envelopeStep[2];
+    volatile static uint16_t sweepFrequency;
     volatile static uint8_t sweepStep;
     volatile static uint8_t effectTimerCounter;
 
     static void squareUpdate1();
     static void squareUpdate2();
     static void effectUpdate();
+
+    typedef union {
+        struct {
+            unsigned shift : 3;
+            unsigned direction : 1;
+            unsigned time : 3;
+            unsigned : 1;
+        } bits;
+        uint8_t value;
+    } nr10_register_t;
 
     typedef union {
         struct {
