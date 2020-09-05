@@ -22,6 +22,7 @@
 
 #define AUDIO_OUT_SQUARE1 7
 #define AUDIO_OUT_SQUARE2 6
+#define AUDIO_OUT_WAVE    5
 #define AUDIO_OUT_NOISE   4
 
 class APU {

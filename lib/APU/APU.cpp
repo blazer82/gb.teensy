@@ -42,6 +42,7 @@ const uint8_t APU::divisor[] = {8, 16, 32, 48, 64, 80, 96, 112};
 void APU::begin() {
     pinMode(AUDIO_OUT_SQUARE1, OUTPUT);
     pinMode(AUDIO_OUT_SQUARE2, OUTPUT);
+    pinMode(AUDIO_OUT_WAVE, OUTPUT);
     pinMode(AUDIO_OUT_NOISE, OUTPUT);
 
     // Setup PWM resolution and frequency according to https://www.pjrc.com/teensy/td_pulse.html
