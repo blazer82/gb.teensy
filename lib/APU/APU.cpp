@@ -29,7 +29,7 @@ volatile bool APU::channelEnabled[] = {0, 0};
 volatile uint8_t APU::currentSquareFrequency[] = {0, 0};
 volatile uint8_t APU::dutyStep[] = {0, 0};
 volatile uint8_t APU::lengthCounter[] = {0, 0};
-
+volatile uint8_t APU::envelopeStep[] = {0, 0};
 volatile uint8_t APU::sweepStep = 0;
 volatile uint8_t APU::effectTimerCounter = 0;
 
@@ -79,7 +79,7 @@ void APU::squareUpdate1() {
         const nrx2_register_t envelope = {.value = Memory::readByte(MEM_SOUND_NR12)};
         const bool so1 = (Memory::readByte(MEM_SOUND_NR51) & 0x1) != 0;
         const bool so2 = (Memory::readByte(MEM_SOUND_NR51) & 0x10) != 0;
-        const uint8_t mixerVolume = ((Memory::readByte(MEM_SOUND_NR50) & 0x7) * so1 + ((Memory::readByte(MEM_SOUND_NR50) >> 4 & 0x7)) * so2) / (so1 + so2);
+        const uint8_t mixerVolume = ((Memory::readByte(MEM_SOUND_NR50) & 0x7) * so1 + (((Memory::readByte(MEM_SOUND_NR50) >> 4) & 0x7)) * so2) / (so1 + so2);
         analogWrite(AUDIO_OUT_SQUARE1, ((duty[nrx1.bits.duty] >> APU::dutyStep[0]) & 1) * envelope.bits.volume * mixerVolume);
         APU::dutyStep[0]++;
         APU::dutyStep[0] %= 8;
@@ -97,7 +97,7 @@ void APU::squareUpdate2() {
         const nrx2_register_t envelope = {.value = Memory::readByte(MEM_SOUND_NR22)};
         const bool so1 = (Memory::readByte(MEM_SOUND_NR51) & 0x2) != 0;
         const bool so2 = (Memory::readByte(MEM_SOUND_NR51) & 0x20) != 0;
-        const uint8_t mixerVolume = ((Memory::readByte(MEM_SOUND_NR50) & 0x7) * so1 + ((Memory::readByte(MEM_SOUND_NR50) >> 4 & 0x7)) * so2) / (so1 + so2);
+        const uint8_t mixerVolume = ((Memory::readByte(MEM_SOUND_NR50) & 0x7) * so1 + (((Memory::readByte(MEM_SOUND_NR50) >> 4) & 0x7)) * so2) / (so1 + so2);
         analogWrite(AUDIO_OUT_SQUARE2, ((duty[nrx1.bits.duty] >> APU::dutyStep[1]) & 1) * envelope.bits.volume * mixerVolume);
         APU::dutyStep[1]++;
         APU::dutyStep[1] %= 8;
@@ -150,30 +150,38 @@ void APU::effectUpdate() {
         }
     }*/
 
-    if ((APU::effectTimerCounter % 32) == 0) {  // supposed to be % 4 but 32 sounds more accurate
+    if ((APU::effectTimerCounter % 4) == 0) {
         // Envelope update
-        const nrx2_register_t envelope1 = {.value = Memory::readByte(MEM_SOUND_NR12)};
-        const nrx2_register_t envelope2 = {.value = Memory::readByte(MEM_SOUND_NR22)};
+        {
+            APU::envelopeStep[0]++;
+            const nrx2_register_t envelope = {.value = Memory::readByte(MEM_SOUND_NR12)};
 
-        if (envelope1.bits.number > 0) {
-            if (envelope1.bits.direction && envelope1.bits.volume < 0xF) {
-                const nrx2_register_t newEnvelope = {
-                    .bits = {.number = envelope1.bits.number - 1U, .direction = envelope1.bits.direction, .volume = envelope1.bits.volume + 1U}};
-                Memory::writeByteInternal(MEM_SOUND_NR12, newEnvelope.value, true);
-            } else if (!envelope1.bits.direction && envelope1.bits.volume > 0) {
-                const nrx2_register_t newEnvelope = {.bits = {envelope1.bits.number - 1U, envelope1.bits.direction, envelope1.bits.volume - 1U}};
-                Memory::writeByteInternal(MEM_SOUND_NR12, newEnvelope.value, true);
+            if (APU::envelopeStep[0] % envelope.bits.period == 0) {
+                if (envelope.bits.direction && envelope.bits.volume < 0xF) {
+                    const nrx2_register_t newEnvelope = {
+                        .bits = {.period = envelope.bits.period, .direction = envelope.bits.direction, .volume = envelope.bits.volume + 1U}};
+                    Memory::writeByteInternal(MEM_SOUND_NR12, newEnvelope.value, true);
+                } else if (!envelope.bits.direction && envelope.bits.volume > 0) {
+                    const nrx2_register_t newEnvelope = {
+                        .bits = {.period = envelope.bits.period, .direction = envelope.bits.direction, .volume = envelope.bits.volume - 1U}};
+                    Memory::writeByteInternal(MEM_SOUND_NR12, newEnvelope.value, true);
+                }
             }
         }
+        {
+            APU::envelopeStep[1]++;
+            const nrx2_register_t envelope = {.value = Memory::readByte(MEM_SOUND_NR22)};
 
-        if (envelope2.bits.number > 0) {
-            if (envelope2.bits.direction && envelope2.bits.volume < 0xF) {
-                const nrx2_register_t newEnvelope = {
-                    .bits = {.number = envelope2.bits.number - 1U, .direction = envelope2.bits.direction, .volume = envelope2.bits.volume + 1U}};
-                Memory::writeByteInternal(MEM_SOUND_NR22, newEnvelope.value, true);
-            } else if (!envelope2.bits.direction && envelope2.bits.volume > 0) {
-                const nrx2_register_t newEnvelope = {.bits = {envelope2.bits.number - 1U, envelope2.bits.direction, envelope2.bits.volume - 1U}};
-                Memory::writeByteInternal(MEM_SOUND_NR22, newEnvelope.value, true);
+            if (APU::envelopeStep[1] % envelope.bits.period == 0) {
+                if (envelope.bits.direction && envelope.bits.volume < 0xF) {
+                    const nrx2_register_t newEnvelope = {
+                        .bits = {.period = envelope.bits.period, .direction = envelope.bits.direction, .volume = envelope.bits.volume + 1U}};
+                    Memory::writeByteInternal(MEM_SOUND_NR22, newEnvelope.value, true);
+                } else if (!envelope.bits.direction && envelope.bits.volume > 0) {
+                    const nrx2_register_t newEnvelope = {
+                        .bits = {.period = envelope.bits.period, .direction = envelope.bits.direction, .volume = envelope.bits.volume - 1U}};
+                    Memory::writeByteInternal(MEM_SOUND_NR22, newEnvelope.value, true);
+                }
             }
         }
     }
@@ -182,11 +190,13 @@ void APU::effectUpdate() {
 
 void APU::triggerSquare1() {
     APU::loadLength1();
+    APU::envelopeStep[0] = 0;
     APU::channelEnabled[0] = 1;
 }
 
 void APU::triggerSquare2() {
     APU::loadLength2();
+    APU::envelopeStep[1] = 0;
     APU::channelEnabled[1] = 1;
 }
 

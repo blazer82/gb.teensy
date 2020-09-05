@@ -43,6 +43,7 @@ class APU {
     volatile static uint8_t currentSquareFrequency[2];
     volatile static uint8_t dutyStep[2];
     volatile static uint8_t lengthCounter[2];
+    volatile static uint8_t envelopeStep[2];
     volatile static uint8_t sweepStep;
     volatile static uint8_t effectTimerCounter;
 
@@ -60,7 +61,7 @@ class APU {
 
     typedef union {
         struct {
-            unsigned number : 3;
+            unsigned period : 3;
             unsigned direction : 1;
             unsigned volume : 4;
         } bits;
