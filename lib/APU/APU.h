@@ -22,7 +22,7 @@
 
 #define AUDIO_OUT_SQUARE1 7
 #define AUDIO_OUT_SQUARE2 6
-#define AUDIO_OUT_WAVE    5
+#define AUDIO_OUT_NOISE   4
 
 class APU {
    public:
@@ -77,6 +77,30 @@ class APU {
         } bits;
         uint8_t value;
     } nrx4_register_t;
+
+    typedef union {
+        struct {
+            unsigned terminal1Volume : 3;
+            unsigned VINTerminal1 : 1;
+            unsigned terminal2Volume : 3;
+            unsigned VINTerminal2 : 1;
+        } bits;
+        uint8_t value;
+    } nr50_register_t;
+
+    typedef union {
+        struct {
+            unsigned square1Terminal1 : 1;
+            unsigned square2Terminal1 : 1;
+            unsigned waveTerminal1 : 1;
+            unsigned noiseTerminal1 : 1;
+            unsigned square1Terminal2 : 1;
+            unsigned square2Terminal2 : 1;
+            unsigned waveTerminal2 : 1;
+            unsigned noiseTerminal2 : 1;
+        } bits;
+        uint8_t value;
+    } nr51_register_t;
 
    private:
 };

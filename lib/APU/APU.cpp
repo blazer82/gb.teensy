@@ -38,13 +38,13 @@ const uint8_t divisor[] = {8, 16, 32, 48, 64, 80, 96, 112};
 void APU::begin() {
     pinMode(AUDIO_OUT_SQUARE1, OUTPUT);
     pinMode(AUDIO_OUT_SQUARE2, OUTPUT);
-    pinMode(AUDIO_OUT_WAVE, OUTPUT);
+    pinMode(AUDIO_OUT_NOISE, OUTPUT);
 
     // Setup PWM resolution and frequency according to https://www.pjrc.com/teensy/td_pulse.html
     analogWriteResolution(8);
     analogWriteFrequency(AUDIO_OUT_SQUARE1, 9375000);
     analogWriteFrequency(AUDIO_OUT_SQUARE2, 9375000);
-    analogWriteFrequency(AUDIO_OUT_WAVE, 9375000);
+    analogWriteFrequency(AUDIO_OUT_NOISE, 9375000);
 
     APU::squareTimer[0].begin(APU::squareUpdate1, 1000000);
     APU::squareTimer[1].begin(APU::squareUpdate2, 1000000);
@@ -77,9 +77,11 @@ void APU::squareUpdate1() {
 
     if (APU::channelEnabled[0] && (!nrx4.bits.lengthEnable || APU::lengthCounter[0] > 0)) {
         const nrx2_register_t envelope = {.value = Memory::readByte(MEM_SOUND_NR12)};
-        const bool so1 = (Memory::readByte(MEM_SOUND_NR51) & 0x1) != 0;
-        const bool so2 = (Memory::readByte(MEM_SOUND_NR51) & 0x10) != 0;
-        const uint8_t mixerVolume = ((Memory::readByte(MEM_SOUND_NR50) & 0x7) * so1 + (((Memory::readByte(MEM_SOUND_NR50) >> 4) & 0x7)) * so2) / (so1 + so2);
+        const nr50_register_t channelControl = {.value = Memory::readByte(MEM_SOUND_NR50)};
+        const nr51_register_t terminalControl = {.value = Memory::readByte(MEM_SOUND_NR51)};
+        const uint8_t mixerVolume = (channelControl.bits.terminal1Volume * terminalControl.bits.square1Terminal1 +
+                                     channelControl.bits.terminal2Volume * terminalControl.bits.square1Terminal2) /
+                                    (terminalControl.bits.square1Terminal1 + terminalControl.bits.square1Terminal2);
         analogWrite(AUDIO_OUT_SQUARE1, ((duty[nrx1.bits.duty] >> APU::dutyStep[0]) & 1) * envelope.bits.volume * mixerVolume);
         APU::dutyStep[0]++;
         APU::dutyStep[0] %= 8;
@@ -95,9 +97,11 @@ void APU::squareUpdate2() {
 
     if (APU::channelEnabled[1] && (!nrx4.bits.lengthEnable || APU::lengthCounter[1] > 0)) {
         const nrx2_register_t envelope = {.value = Memory::readByte(MEM_SOUND_NR22)};
-        const bool so1 = (Memory::readByte(MEM_SOUND_NR51) & 0x2) != 0;
-        const bool so2 = (Memory::readByte(MEM_SOUND_NR51) & 0x20) != 0;
-        const uint8_t mixerVolume = ((Memory::readByte(MEM_SOUND_NR50) & 0x7) * so1 + (((Memory::readByte(MEM_SOUND_NR50) >> 4) & 0x7)) * so2) / (so1 + so2);
+        const nr50_register_t channelControl = {.value = Memory::readByte(MEM_SOUND_NR50)};
+        const nr51_register_t terminalControl = {.value = Memory::readByte(MEM_SOUND_NR51)};
+        const uint8_t mixerVolume = (channelControl.bits.terminal1Volume * terminalControl.bits.square2Terminal1 +
+                                     channelControl.bits.terminal2Volume * terminalControl.bits.square2Terminal2) /
+                                    (terminalControl.bits.square2Terminal1 + terminalControl.bits.square2Terminal2);
         analogWrite(AUDIO_OUT_SQUARE2, ((duty[nrx1.bits.duty] >> APU::dutyStep[1]) & 1) * envelope.bits.volume * mixerVolume);
         APU::dutyStep[1]++;
         APU::dutyStep[1] %= 8;
