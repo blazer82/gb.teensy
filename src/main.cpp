@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
+#include <APU.h>
 #include <Arduino.h>
 #include <CPU.h>
 #include <FT81x.h>
@@ -67,6 +68,8 @@ void setup() {
     ft81x.drawText(470, 460, 16, FT81x_COLOR_RGB(255, 0, 255), FT81x_OPT_RIGHTX, "Emulated speed: ...\0");
     ft81x.drawBitmap(0, 0, 0, 160, 144, 3);
     ft81x.swapScreen();
+
+    APU::begin();
 }
 
 void loop() {
@@ -75,6 +78,7 @@ void loop() {
     while (true) {
         CPU::cpuStep();
         PPU::ppuStep(ft81x);
+        APU::apuStep();
 
         uint8_t joypad = Memory::readByte(MEM_JOYPAD);
         if ((joypad & 0x10) == 0) {

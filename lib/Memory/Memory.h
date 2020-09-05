@@ -55,6 +55,28 @@
 #define PC_SERIAL   0x0058
 #define PC_JOYPAD   0x0060
 
+#define MEM_SOUND_NR10 0xFF10
+#define MEM_SOUND_NR11 0xFF11
+#define MEM_SOUND_NR12 0xFF12
+#define MEM_SOUND_NR13 0xFF13
+#define MEM_SOUND_NR14 0xFF14
+#define MEM_SOUND_NR21 0xFF16
+#define MEM_SOUND_NR22 0xFF17
+#define MEM_SOUND_NR23 0xFF18
+#define MEM_SOUND_NR24 0xFF19
+#define MEM_SOUND_NR30 0xFF1A
+#define MEM_SOUND_NR31 0xFF1B
+#define MEM_SOUND_NR32 0xFF1C
+#define MEM_SOUND_NR33 0xFF1D
+#define MEM_SOUND_NR34 0xFF1E
+#define MEM_SOUND_NR41 0xFF20
+#define MEM_SOUND_NR42 0xFF21
+#define MEM_SOUND_NR43 0xFF22
+#define MEM_SOUND_NR44 0xFF23
+#define MEM_SOUND_NR50 0xFF24
+#define MEM_SOUND_NR51 0xFF25
+#define MEM_SOUND_NR52 0xFF26
+
 class Memory {
    public:
     static void initMemory();
