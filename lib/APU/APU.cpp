@@ -52,22 +52,31 @@ void APU::begin() {
 }
 
 void APU::apuStep() {
-    const nrx4_register_t nr14 = {.value = Memory::readByte(MEM_SOUND_NR14)};
-    const nrx4_register_t nr24 = {.value = Memory::readByte(MEM_SOUND_NR24)};
-    const uint16_t squareFreq[] = {(uint16_t)(0x20000 / (0x800 - ((nr14.bits.frequency << 8) | Memory::readByte(MEM_SOUND_NR13)))),
-                                   (uint16_t)(0x20000 / (0x800 - ((nr24.bits.frequency << 8) | Memory::readByte(MEM_SOUND_NR23))))};
+    const nr52_register_t nr52 = {.value = Memory::readByte(MEM_SOUND_NR52)};
 
-    for (uint8_t i = 0; i < 2; i++) {
-        if (APU::currentSquareFrequency[i] != squareFreq[i]) {
-            APU::currentSquareFrequency[i] = squareFreq[i];
+    if (nr52.bits.masterSwitch) {
+        const nrx4_register_t nr14 = {.value = Memory::readByte(MEM_SOUND_NR14)};
+        const nrx4_register_t nr24 = {.value = Memory::readByte(MEM_SOUND_NR24)};
+        const uint16_t squareFreq[] = {(uint16_t)(0x20000 / (0x800 - ((nr14.bits.frequency << 8) | Memory::readByte(MEM_SOUND_NR13)))),
+                                       (uint16_t)(0x20000 / (0x800 - ((nr24.bits.frequency << 8) | Memory::readByte(MEM_SOUND_NR23))))};
 
-            if (squareFreq[i] == 0) {
-                APU::squareTimer[i].update(1000000);
-                analogWrite(i == 0 ? AUDIO_OUT_SQUARE1 : AUDIO_OUT_SQUARE2, 0);
-            } else {
-                APU::squareTimer[i].update(1000000 / 8 / (uint32_t)squareFreq[i]);
+        for (uint8_t i = 0; i < 2; i++) {
+            if (APU::currentSquareFrequency[i] != squareFreq[i]) {
+                APU::currentSquareFrequency[i] = squareFreq[i];
+
+                if (squareFreq[i] == 0) {
+                    APU::squareTimer[i].update(1000000);
+                    analogWrite(i == 0 ? AUDIO_OUT_SQUARE1 : AUDIO_OUT_SQUARE2, 0);
+                } else {
+                    APU::squareTimer[i].update(1000000 / 8 / (uint32_t)squareFreq[i]);
+                }
             }
         }
+    } else {
+        APU::squareTimer[0].update(1000000);
+        APU::squareTimer[1].update(1000000);
+        analogWrite(AUDIO_OUT_SQUARE1, 0);
+        analogWrite(AUDIO_OUT_SQUARE2, 0);
     }
 }
 

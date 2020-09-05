@@ -102,5 +102,17 @@ class APU {
         uint8_t value;
     } nr51_register_t;
 
+    typedef union {
+        struct {
+            unsigned sound1On : 1;
+            unsigned sound2On : 1;
+            unsigned sound3On : 1;
+            unsigned sound4On : 1;
+            unsigned : 3;
+            unsigned masterSwitch : 1;
+        } bits;
+        uint8_t value;
+    } nr52_register_t;
+
    private:
 };
