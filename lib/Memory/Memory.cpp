@@ -100,7 +100,7 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             }
             // Handle writes to external cartridge RAM
             if(location >= MEM_RAM_EXTERNAL){
-                cart->writeByte(location, data);
+                Cartridge::writeByte(location, data);
             }
             // Handle writes to VRAM
             else if (location >= MEM_VRAM_TILES) {
@@ -109,7 +109,7 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             // Handle writes to cart ROM
             // These are usually mapped to MBC control registers in the cart
             else if(location >= MEM_ROM){
-                cart->writeByte(location, data);
+                Cartridge::writeByte(location, data);
             }
             else {
                 // Illegal operation
@@ -155,7 +155,7 @@ uint8_t Memory::readByte(const uint16_t location) {
     }
     // Handle reads from external cartridge RAM
     if(location >= MEM_RAM_EXTERNAL){
-        return cart->readByte(location);
+        return Cartridge::readByte(location);
     }
     // Handle reads from VRAM
     else if (location >= MEM_VRAM_TILES) {
@@ -163,7 +163,7 @@ uint8_t Memory::readByte(const uint16_t location) {
     }
     // Handle reads from cart ROM
     else if(location >= MEM_ROM){
-        return cart->readByte(location);
+        return Cartridge::readByte(location);
     }
     else {
         // Illegal operation
@@ -174,24 +174,9 @@ uint8_t Memory::readByte(const uint16_t location) {
 
 void Memory::interrupt(uint8_t flag) { writeByte(MEM_IRQ_FLAG, readByte(MEM_IRQ_FLAG) | flag); }
 
-void Memory::initMemory(const char* romFile) {
+void Memory::initMemory() {
     // Reset memory to zero
     // memset(memory, 0, 0xFFFF - 0x8000 + 1);
-
-    // Initialize the cartridge
-    uint8_t mbcType = lookupMbcTypeFromCart(romFile);
-    if (mbcType == USES_NOMBC){
-        cart = new NoMBC(romFile);
-    }
-    else if(mbcType == USES_MBC1){
-        cart = new MBC1(romFile);
-    }
-    else if(mbcType == USES_MBC2){
-        cart = new MBC2(romFile);
-    }
-    else{
-        Serial.printf("MBC type 0x%x is currently not supported\n");
-    }
 
     // Init joypad flags
     writeByteInternal(MEM_JOYPAD, 0x2F, true);

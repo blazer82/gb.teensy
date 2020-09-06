@@ -21,6 +21,7 @@
 #include <FT81x.h>
 #include <Memory.h>
 #include <PPU.h>
+#include <Cartridge.h>
 
 void waitForKeyPress();
 void printDiagnostics();
@@ -60,8 +61,9 @@ void loop() {
     Serial.println("");
     Serial.println("Start Gameboy...");
 
+    Cartridge::begin("tetris.gb");
     Memory* mem = new Memory;
-    mem->initMemory("tetris.gb");
+    mem->initMemory();
     PPU::setMemoryHandle(mem);
     CPU::setMemoryHandle(mem);
     CPU::cpuEnabled = 1;

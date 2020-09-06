@@ -19,7 +19,7 @@
 #pragma once
 
 #include <sys/_stdint.h>
-#include <ACartridge.h>
+#include <Cartridge.h>
 #include "NoMBC.h"
 #include "MBC1.h"
 #include "MBC2.h"
@@ -204,7 +204,7 @@
 
 class Memory {
    public:
-    void initMemory(const char* romName);
+    void initMemory();
 
     void writeByte(uint16_t location, uint8_t data);
     void writeByteInternal(uint16_t location, uint8_t data, bool internal);
@@ -234,6 +234,4 @@ class Memory {
     // Interrupt Enable Register (IE)
     // Addr: MEM_INT_EN_REG
     uint8_t iereg;
-    // Game Cart
-    ACartridge* cart;
 };

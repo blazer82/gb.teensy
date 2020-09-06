@@ -20,7 +20,7 @@
 
 #include <Arduino.h>
 #include <FT81x.h>
-#include "../Memory/Memory.h"
+#include <Memory.h>
 
 class PPU {
    public:
