@@ -39,7 +39,7 @@ void Joypad::joypadStep() {
         bool right = digitalReadFast(JOYPAD_RIGHT);
         bool up = digitalReadFast(JOYPAD_UP);
         bool down = digitalReadFast(JOYPAD_DOWN);
-        joypad = (joypad & 0xF0) | (up << 4) | (down << 3) | (left << 1) | right;
+        joypad = (joypad & 0xF0) | (down << 3) | (up << 2) | (left << 1) | right;
         Memory::writeByteInternal(MEM_JOYPAD, joypad, true);
     }
 
@@ -48,7 +48,7 @@ void Joypad::joypadStep() {
         bool select = digitalReadFast(JOYPAD_SELECT);
         bool a = digitalReadFast(JOYPAD_A);
         bool b = digitalReadFast(JOYPAD_B);
-        joypad = (joypad & 0xF0) | (select << 4) | (start << 3) | (b << 1) | a;
+        joypad = (joypad & 0xF0) | (start << 3) | (select << 2) | (b << 1) | a;
         Memory::writeByteInternal(MEM_JOYPAD, joypad, true);
     }
 }
