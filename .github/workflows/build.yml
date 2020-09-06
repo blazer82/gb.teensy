@@ -1,0 +1,23 @@
+name: build
+
+on:
+  pull_request:
+    paths-ignore:
+      - "assets/**"
+  push:
+    paths-ignore:
+      - "assets/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check clang-format conformity
+        run: bash ci/clang-lint.sh
+
+      - name: Build on PlatformIO
+        run: bash ci/build-platformio.sh
