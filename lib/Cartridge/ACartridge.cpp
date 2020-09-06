@@ -1,6 +1,6 @@
-#include "Cartridge.h"
+#include "ACartridge.h"
 
-Cartridge::Cartridge(const char* romFile){
+ACartridge::ACartridge(const char* romFile){
     Serial.println("Initializing SD card...");
     // See if the card is present and can be initialized
     if (!SD.begin(BUILTIN_SDCARD)) {
@@ -53,23 +53,23 @@ Cartridge::Cartridge(const char* romFile){
 
 }
 
-Cartridge::~Cartridge(){
+ACartridge::~ACartridge(){
     Serial.println("Deleting Cartridge");
 }
 
-uint8_t Cartridge::getCartCode(){
+uint8_t ACartridge::getCartCode(){
     return cartCode;
 }
 
-uint8_t Cartridge::getRomCode(){
+uint8_t ACartridge::getRomCode(){
     return romCode;
 }
 
-uint8_t Cartridge::getRamCode(){
+uint8_t ACartridge::getRamCode(){
     return ramCode;
 }
 
-char* Cartridge::getGameName(){
+char* ACartridge::getGameName(){
     return name;
 }
 

@@ -19,7 +19,7 @@
 #pragma once
 
 #include <sys/_stdint.h>
-#include "Cartridge.h"
+#include <ACartridge.h>
 #include "NoMBC.h"
 #include "MBC1.h"
 #include "MBC2.h"
@@ -235,5 +235,5 @@ class Memory {
     // Addr: MEM_INT_EN_REG
     uint8_t iereg;
     // Game Cart
-    Cartridge* cart;
+    ACartridge* cart;
 };

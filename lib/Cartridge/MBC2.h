@@ -1,7 +1,7 @@
 #pragma once
 
 #include <sys/_stdint.h>
-#include "Cartridge.h"
+#include "ACartridge.h"
 #include <stdlib.h>
 #include <Arduino.h>
 
@@ -15,7 +15,7 @@
 // MBC2 Has significantly less RAM than can fit in the memory map
 #define MBC2_CART_RAM_TOP            0xA200
 
-class MBC2 : public Cartridge{
+class MBC2 : public ACartridge{
     public:
         MBC2(const char *romFile);
         ~MBC2();

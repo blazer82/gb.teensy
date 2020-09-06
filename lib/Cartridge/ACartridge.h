@@ -33,14 +33,14 @@
 #define USES_HUC3           0xA
 #define USES_HUC1           0xB
 
-class Cartridge {
+class ACartridge {
     public:
-        Cartridge(const char* romFile);
+        ACartridge(const char* romFile);
         // Abstract readByte. It should be defined in every MBC
         virtual uint8_t readByte(uint16_t addr) = 0;
         // Abstract writeByte. It should be defined in every MBC
         virtual void writeByte(uint16_t addr, uint8_t data) = 0;
-        virtual ~Cartridge();
+        virtual ~ACartridge();
         uint8_t getCartCode();
         uint8_t getRomCode();
         uint8_t getRamCode();

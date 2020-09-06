@@ -1,13 +1,13 @@
 #pragma once
 
 #include <sys/_stdint.h>
-#include "Cartridge.h"
+#include "ACartridge.h"
 #include <stdlib.h>
 #include <Arduino.h>
 #include <SD.h>
 #include <SPI.h>
 
-class NoMBC : public Cartridge{
+class NoMBC : public ACartridge{
     public:
         NoMBC(const char *romFile);
         ~NoMBC();

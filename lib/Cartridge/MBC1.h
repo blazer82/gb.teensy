@@ -1,7 +1,7 @@
 #pragma once
 
 #include <sys/_stdint.h>
-#include "Cartridge.h"
+#include "ACartridge.h"
 #include <stdlib.h>
 #include <Arduino.h>
 
@@ -11,7 +11,7 @@
 #define MBC1_SECONDARY_BANK_REG      0x4000
 #define MBC1_BANKING_MODE_SEL_REG    0x6000
 
-class MBC1 : public Cartridge{
+class MBC1 : public ACartridge{
     public:
         MBC1(const char *romFile);
         ~MBC1();

@@ -1,6 +1,6 @@
 #include "MBC1.h"
 
-MBC1::MBC1(const char *romFile) : Cartridge(romFile){
+MBC1::MBC1(const char *romFile) : ACartridge(romFile){
     // Initialize the control registers
     ramEnable = 0x0;
     primaryBankBits = 0x1; // Defaults to bank 1 on PoR
