@@ -23,7 +23,7 @@
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-void Memory::writeByteInternal(uint16_t location, uint8_t data, bool internal) {
+void Memory::writeByteInternal(const uint16_t location, const uint8_t data, const bool internal) {
     uint16_t d;
     switch (location) {
         // Handle write to Joypad registers at 0xFF00
@@ -120,9 +120,9 @@ void Memory::writeByteInternal(uint16_t location, uint8_t data, bool internal) {
     }
 }
 
-void Memory::writeByte(uint16_t location, uint8_t data) { writeByteInternal(location, data, false); }
+void Memory::writeByte(const uint16_t location, const uint8_t data) { writeByteInternal(location, data, false); }
 
-uint8_t Memory::readByte(uint16_t location) {
+uint8_t Memory::readByte(const uint16_t location) {
         // Handle reads of the IE register
     if(location >= MEM_INT_EN_REG){
         return iereg;

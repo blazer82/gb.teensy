@@ -61,7 +61,7 @@ void loop() {
     Serial.println("Start Gameboy...");
 
     Memory* mem = new Memory;
-    mem->initMemory("tetris.rom");
+    mem->initMemory("tetris.gb");
     PPU::setMemoryHandle(mem);
     CPU::setMemoryHandle(mem);
     CPU::cpuEnabled = 1;
