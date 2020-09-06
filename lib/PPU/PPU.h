@@ -25,7 +25,6 @@
 class PPU {
    public:
     static void ppuStep(FT81x &ft81x);
-    static void setMemoryHandle(Memory* memHandle);
 
    protected:
     // Handle to Memory

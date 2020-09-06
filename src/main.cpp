@@ -62,10 +62,7 @@ void loop() {
     Serial.println("Start Gameboy...");
 
     Cartridge::begin("tetris.gb");
-    Memory* mem = new Memory;
-    mem->initMemory();
-    PPU::setMemoryHandle(mem);
-    CPU::setMemoryHandle(mem);
+    Memory::initMemory();
     CPU::cpuEnabled = 1;
 
     ft81x.beginDisplayList();
@@ -80,20 +77,20 @@ void loop() {
         CPU::cpuStep();
         PPU::ppuStep(ft81x);
 
-        uint8_t joypad = mem->readByte(MEM_JOYPAD);
+        uint8_t joypad = Memory::readByte(MEM_JOYPAD);
         if ((joypad & 0x10) == 0) {
             bool left = digitalReadFast(JOYPAD_LEFT);
             bool right = digitalReadFast(JOYPAD_RIGHT);
             bool down = digitalReadFast(JOYPAD_DOWN);
             joypad = (joypad & 0xF0) | 0x4 | (down << 3) | (left << 1) | right;
-            mem->writeByteInternal(MEM_JOYPAD, joypad, true);
+            Memory::writeByteInternal(MEM_JOYPAD, joypad, true);
         }
         if ((joypad & 0x20) == 0) {
             bool start = digitalReadFast(JOYPAD_START);
             bool a = digitalReadFast(JOYPAD_A);
             bool b = 1;  // digitalReadFast(JOYPAD_B);
             joypad = (joypad & 0xF0) | 0x4 | (start << 3) | (b << 1) | a;
-            mem->writeByteInternal(MEM_JOYPAD, joypad, true);
+            Memory::writeByteInternal(MEM_JOYPAD, joypad, true);
         }
 
         if ((CPU::totalCycles % 1000000) == 0) {
