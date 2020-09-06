@@ -21,6 +21,10 @@
 #include <Arduino.h>
 #include <string.h>
 
+#include "APU.h"
+#include "CPU.h"
+#include "Cartridge.h"
+
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 void Memory::writeByteInternal(uint16_t location, uint8_t data, bool internal) {
@@ -65,6 +69,46 @@ void Memory::writeByteInternal(uint16_t location, uint8_t data, bool internal) {
             } else {
                 // Writes to the divider just clear it
                 ioreg[MEM_DIVIDER - MEM_IO_REGS] = 0x00;
+            }
+            break;
+
+        // Sound length counter
+        case MEM_SOUND_NR11:
+            memory[location - 0x8000] = data;
+            if (!internal) {
+                APU::loadLength1();
+            }
+            break;
+        case MEM_SOUND_NR21:
+            memory[location - 0x8000] = data;
+            if (!internal) {
+                APU::loadLength2();
+            }
+            break;
+
+        // Sound channel enable
+        case MEM_SOUND_NR14:
+            memory[location - 0x8000] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerSquare1();
+                }
+            }
+            break;
+        case MEM_SOUND_NR24:
+            memory[location - 0x8000] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerSquare2();
+                }
+            }
+            break;
+        case MEM_SOUND_NR44:
+            memory[location - 0x8000] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerNoise();
+                }
             }
             break;
 
