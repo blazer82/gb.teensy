@@ -23,6 +23,14 @@
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
+uint8_t Memory::vram[0x2000] = {0};
+uint8_t vram[0x2000] = {0};
+uint8_t Memory::wram[0x2000] = {0};
+uint8_t Memory::oam[0xA0] = {0};
+uint8_t Memory::ioreg[0x80] = {0};
+uint8_t Memory::hram[0x7F] = {0};
+uint8_t Memory::iereg = 0;
+
 void Memory::writeByteInternal(const uint16_t location, const uint8_t data, const bool internal) {
     uint16_t d;
     switch (location) {

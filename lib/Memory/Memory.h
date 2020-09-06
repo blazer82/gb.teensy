@@ -204,13 +204,13 @@
 
 class Memory {
    public:
-    void initMemory();
+    static void initMemory();
 
-    void writeByte(uint16_t location, uint8_t data);
-    void writeByteInternal(uint16_t location, uint8_t data, bool internal);
-    uint8_t readByte(uint16_t location);
+    static void writeByte(const uint16_t location, const uint8_t data);
+    static void writeByteInternal(const uint16_t location, const uint8_t data, const bool internal);
+    static uint8_t readByte(const uint16_t location);
 
-    void interrupt(const uint8_t flag);
+    static void interrupt(const uint8_t flag);
 
     static void getTitle(char* title);
 
@@ -218,20 +218,20 @@ class Memory {
    private:
     // Video RAM
     // Addr: MEM_VRAM
-    uint8_t vram[0x2000];
+    static uint8_t vram[0x2000];
     // Work RAM (both banks)
     // Addr: MEM_RAM_INTERNAL
-    uint8_t wram[0x2000];
+    static uint8_t wram[0x2000];
     // Sprite Attribute Table (OAM)
     // Addr: MEM_SPRITE_ATTR_TABLE
-    uint8_t oam[0xA0];
+    static uint8_t oam[0xA0];
     // I/O Registers
     // Addr: MEM_IO_REGS
-    uint8_t ioreg[0x80];
+    static uint8_t ioreg[0x80];
     // High RAM
     // Addr: MEM_HIGH_RAM
-    uint8_t hram[0x7F];
+    static uint8_t hram[0x7F];
     // Interrupt Enable Register (IE)
     // Addr: MEM_INT_EN_REG
-    uint8_t iereg;
+    static uint8_t iereg;
 };
