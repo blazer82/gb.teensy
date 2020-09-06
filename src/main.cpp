@@ -16,12 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
+#include <APU.h>
 #include <Arduino.h>
 #include <CPU.h>
 #include <FT81x.h>
 #include <Memory.h>
 #include <PPU.h>
 #include <Cartridge.h>
+#include <Joypad.h>
 
 void waitForKeyPress();
 void printDiagnostics();
@@ -30,11 +32,6 @@ FT81x ft81x = FT81x(10, 9, 8);
 
 static char title[16];
 
-#define JOYPAD_START 16
-#define JOYPAD_LEFT  17
-#define JOYPAD_RIGHT 18
-#define JOYPAD_DOWN  19
-#define JOYPAD_A     20
 
 void setup() {
     Serial.begin(9600);
@@ -42,17 +39,6 @@ void setup() {
     SPI.begin();
 
     waitForKeyPress();
-
-    pinMode(JOYPAD_START, INPUT);
-    pinMode(JOYPAD_LEFT, INPUT);
-    pinMode(JOYPAD_RIGHT, INPUT);
-    pinMode(JOYPAD_DOWN, INPUT);
-    pinMode(JOYPAD_A, INPUT);
-
-    // waitForKeyPress();
-}
-
-void loop() {
     Serial.println("Enable display");
     ft81x.begin();
 
@@ -71,27 +57,20 @@ void loop() {
     ft81x.drawText(470, 460, 16, FT81x_COLOR_RGB(255, 0, 255), FT81x_OPT_RIGHTX, "Emulated speed: ...\0");
     ft81x.drawBitmap(0, 0, 0, 160, 144, 3);
     ft81x.swapScreen();
+
+    APU::begin();
+    Joypad::begin();
+}
+
+void loop() {
+
     uint64_t start = millis();
 
     while (true) {
         CPU::cpuStep();
         PPU::ppuStep(ft81x);
-
-        uint8_t joypad = Memory::readByte(MEM_JOYPAD);
-        if ((joypad & 0x10) == 0) {
-            bool left = digitalReadFast(JOYPAD_LEFT);
-            bool right = digitalReadFast(JOYPAD_RIGHT);
-            bool down = digitalReadFast(JOYPAD_DOWN);
-            joypad = (joypad & 0xF0) | 0x4 | (down << 3) | (left << 1) | right;
-            Memory::writeByteInternal(MEM_JOYPAD, joypad, true);
-        }
-        if ((joypad & 0x20) == 0) {
-            bool start = digitalReadFast(JOYPAD_START);
-            bool a = digitalReadFast(JOYPAD_A);
-            bool b = 1;  // digitalReadFast(JOYPAD_B);
-            joypad = (joypad & 0xF0) | 0x4 | (start << 3) | (b << 1) | a;
-            Memory::writeByteInternal(MEM_JOYPAD, joypad, true);
-        }
+        APU::apuStep();
+        Joypad::joypadStep();
 
         if ((CPU::totalCycles % 1000000) == 0) {
             uint64_t time = millis() - start;
