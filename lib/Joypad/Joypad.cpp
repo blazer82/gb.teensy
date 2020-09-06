@@ -21,14 +21,14 @@
 #include "Memory.h"
 
 void Joypad::begin() {
-    pinMode(JOYPAD_START, INPUT);
-    pinMode(JOYPAD_SELECT, INPUT);
-    pinMode(JOYPAD_LEFT, INPUT);
-    pinMode(JOYPAD_RIGHT, INPUT);
-    pinMode(JOYPAD_UP, INPUT);
-    pinMode(JOYPAD_DOWN, INPUT);
-    pinMode(JOYPAD_B, INPUT);
-    pinMode(JOYPAD_A, INPUT);
+    pinMode(JOYPAD_START, INPUT_PULLUP);
+    pinMode(JOYPAD_SELECT, INPUT_PULLUP);
+    pinMode(JOYPAD_LEFT, INPUT_PULLUP);
+    pinMode(JOYPAD_RIGHT, INPUT_PULLUP);
+    pinMode(JOYPAD_UP, INPUT_PULLUP);
+    pinMode(JOYPAD_DOWN, INPUT_PULLUP);
+    pinMode(JOYPAD_B, INPUT_PULLUP);
+    pinMode(JOYPAD_A, INPUT_PULLUP);
 }
 
 void Joypad::joypadStep() {
