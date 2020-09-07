@@ -20,6 +20,8 @@
 
 #include "Memory.h"
 
+uint8_t Joypad::previousValue = 0;
+
 void Joypad::begin() {
     pinMode(JOYPAD_START, INPUT_PULLUP);
     pinMode(JOYPAD_SELECT, INPUT_PULLUP);
@@ -29,6 +31,8 @@ void Joypad::begin() {
     pinMode(JOYPAD_DOWN, INPUT_PULLUP);
     pinMode(JOYPAD_B, INPUT_PULLUP);
     pinMode(JOYPAD_A, INPUT_PULLUP);
+
+    Joypad::previousValue = Memory::readByte(MEM_JOYPAD) & 0xF;
 }
 
 void Joypad::joypadStep() {
@@ -48,5 +52,10 @@ void Joypad::joypadStep() {
         joypad.button.a = digitalReadFast(JOYPAD_A);
         joypad.button.b = digitalReadFast(JOYPAD_B);
         Memory::writeByteInternal(MEM_JOYPAD, joypad.value, true);
+    }
+
+    if ((joypad.value & 0xF) != 0xF && (joypad.value & 0xF) != Joypad::previousValue) {
+        Memory::interrupt(IRQ_JOYPAD);
+        Joypad::previousValue = Memory::readByte(MEM_JOYPAD) & 0xF;
     }
 }

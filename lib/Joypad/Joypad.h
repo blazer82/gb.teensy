@@ -36,6 +36,8 @@ class Joypad {
     static void joypadStep();
 
    protected:
+    static uint8_t previousValue;
+
     typedef union {
         struct {
             unsigned right : 1;
