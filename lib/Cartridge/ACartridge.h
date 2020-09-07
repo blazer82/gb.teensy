@@ -22,42 +22,42 @@
 #include "CartHelpers.h"
 
 class ACartridge {
-    public:
-        ACartridge(const char* romFile);
-        // Abstract readByte. It should be defined in every MBC
-        virtual uint8_t readByte(uint16_t addr) = 0;
-        // Abstract writeByte. It should be defined in every MBC
-        virtual void writeByte(uint16_t addr, uint8_t data) = 0;
-        virtual ~ACartridge();
-        uint8_t getCartCode();
-        uint8_t getRomCode();
-        uint8_t getRamCode();
-        char* getGameName();
-    protected:
-        // Metadata about the cart
-        uint8_t cartCode;
-        uint8_t romCode;
-        uint8_t ramCode;
+   public:
+    ACartridge(const char* romFile);
+    // Abstract readByte. It should be defined in every MBC
+    virtual uint8_t readByte(uint16_t addr) = 0;
+    // Abstract writeByte. It should be defined in every MBC
+    virtual void writeByte(uint16_t addr, uint8_t data) = 0;
+    virtual ~ACartridge();
+    uint8_t getCartCode();
+    uint8_t getRomCode();
+    uint8_t getRamCode();
+    char* getGameName();
+   protected:
+    // Metadata about the cart
+    uint8_t cartCode;
+    uint8_t romCode;
+    uint8_t ramCode;
 
-        // The file object used to read the ROM file off the SD card
-        File dataFile;
+    // The file object used to read the ROM file off the SD card
+    File dataFile;
 
-        // The cartridge type as a string
-        const char* cartType;
+    // The cartridge type as a string
+    const char* cartType;
 
-        // The total size of all cartridge RAM
-        uint32_t ramSize;
-        // The size of a single bank of cartridge RAM
-        uint16_t ramBankSize;
-        // The total size of all cartridge ROM
-        uint32_t romSize;
+    // The total size of all cartridge RAM
+    uint32_t ramSize;
+    // The size of a single bank of cartridge RAM
+    uint16_t ramBankSize;
+    // The total size of all cartridge ROM
+    uint32_t romSize;
 
-        // The total amount of RAM banks in the cartridge
-        uint8_t ramBankCount;
-        // The total amount of ROM banks in the cartridge
-        uint16_t romBankCount;
+    // The total amount of RAM banks in the cartridge
+    uint8_t ramBankCount;
+    // The total amount of ROM banks in the cartridge
+    uint16_t romBankCount;
 
-        // Human readable name for the ROM
-        char name[16];
+    // Human readable name for the ROM
+    char name[16];
 };
 

@@ -17,16 +17,6 @@
  **/
 #include <sys/_stdint.h>
 
-uint8_t lookupMbcType(uint8_t code);
-uint8_t lookupMbcTypeFromCart(const char* romFile);
-uint16_t lookupRamBankSize(uint8_t code);
-uint32_t lookupRomSize(uint8_t code);
-uint32_t lookupRamSize(uint8_t code);
-uint16_t lookupRomBanks(uint8_t code);
-uint8_t lookupRamBanks(uint8_t code);
-const char* lookupCartType(uint8_t code);
-const char* lookupMBCTypeString(uint8_t code);
-
 // Defines I made to differentiate memory bank controllers
 #define USES_NOMBC          0x0
 #define USES_MBC1           0x1
@@ -52,3 +42,13 @@ const char* lookupMBCTypeString(uint8_t code);
 #define CART_ROM_ZERO       0X0000 // Technically, this can also be banked
 #define CART_ROM_BANKED     0x4000
 #define CART_RAM            0xA000
+
+uint8_t lookupMbcType(uint8_t code);
+uint8_t lookupMbcTypeFromCart(const char* romFile);
+uint16_t lookupRamBankSize(uint8_t code);
+uint32_t lookupRomSize(uint8_t code);
+uint32_t lookupRamSize(uint8_t code);
+uint16_t lookupRomBanks(uint8_t code);
+uint8_t lookupRamBanks(uint8_t code);
+const char* lookupCartType(uint8_t code);
+const char* lookupMBCTypeString(uint8_t code);
