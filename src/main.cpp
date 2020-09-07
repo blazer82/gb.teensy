@@ -30,26 +30,28 @@ void printDiagnostics();
 
 FT81x ft81x = FT81x(10, 9, 8);
 
-static char title[16];
+static char title[17]; //16 chars for name, 1 for null terminator
 
 
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(115200);
 
     SPI.begin();
 
-    waitForKeyPress();
+    // waitForKeyPress();
     Serial.println("Enable display");
     ft81x.begin();
 
     printDiagnostics();
 
-    Serial.println("");
-    Serial.println("Start Gameboy...");
+    Serial.printf("\nStart Gameboy...\n");
 
     Cartridge::begin("tetris.gb");
+    Cartridge::getGameName(title);
+
     Memory::initMemory();
     CPU::cpuEnabled = 1;
+
 
     ft81x.beginDisplayList();
     ft81x.clear(FT81x_COLOR_RGB(0, 0, 0));
