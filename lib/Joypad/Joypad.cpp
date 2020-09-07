@@ -32,23 +32,21 @@ void Joypad::begin() {
 }
 
 void Joypad::joypadStep() {
-    uint8_t joypad = Memory::readByte(MEM_JOYPAD);
+    joypad_register_t joypad = {.value = Memory::readByte(MEM_JOYPAD)};
 
-    if ((joypad & 0x10) == 0) {
-        bool left = digitalReadFast(JOYPAD_LEFT);
-        bool right = digitalReadFast(JOYPAD_RIGHT);
-        bool up = digitalReadFast(JOYPAD_UP);
-        bool down = digitalReadFast(JOYPAD_DOWN);
-        joypad = (joypad & 0xF0) | (down << 3) | (up << 2) | (left << 1) | right;
-        Memory::writeByteInternal(MEM_JOYPAD, joypad, true);
+    if (joypad.direction.selectDirection == 0) {
+        joypad.direction.left = digitalReadFast(JOYPAD_LEFT);
+        joypad.direction.right = digitalReadFast(JOYPAD_RIGHT);
+        joypad.direction.up = digitalReadFast(JOYPAD_UP);
+        joypad.direction.down = digitalReadFast(JOYPAD_DOWN);
+        Memory::writeByteInternal(MEM_JOYPAD, joypad.value, true);
     }
 
-    if ((joypad & 0x20) == 0) {
-        bool start = digitalReadFast(JOYPAD_START);
-        bool select = digitalReadFast(JOYPAD_SELECT);
-        bool a = digitalReadFast(JOYPAD_A);
-        bool b = digitalReadFast(JOYPAD_B);
-        joypad = (joypad & 0xF0) | (start << 3) | (select << 2) | (b << 1) | a;
-        Memory::writeByteInternal(MEM_JOYPAD, joypad, true);
+    if (joypad.button.selectButton == 0) {
+        joypad.button.start = digitalReadFast(JOYPAD_START);
+        joypad.button.select = digitalReadFast(JOYPAD_SELECT);
+        joypad.button.a = digitalReadFast(JOYPAD_A);
+        joypad.button.b = digitalReadFast(JOYPAD_B);
+        Memory::writeByteInternal(MEM_JOYPAD, joypad.value, true);
     }
 }
