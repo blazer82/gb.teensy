@@ -17,8 +17,8 @@
  **/
 #pragma once
 
-#include <sys/_stdint.h>
 #include <SD.h>
+#include <sys/_stdint.h>
 #include "CartHelpers.h"
 
 class ACartridge {
