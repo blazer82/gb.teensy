@@ -21,6 +21,8 @@
 #include <Arduino.h>
 #include <string.h>
 
+#include "APU.h"
+
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 uint8_t Memory::vram[0x2000] = {0};
@@ -73,6 +75,48 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             } else {
                 // Writes to the divider just clear it
                 ioreg[MEM_DIVIDER - MEM_IO_REGS] = 0x00;
+            }
+            break;
+
+        // Sound length counter
+        // Resides in I/O region
+        case MEM_SOUND_NR11:
+            ioreg[MEM_SOUND_NR11 - MEM_IO_REGS] = data;
+            if (!internal) {
+                APU::loadLength1();
+            }
+            break;
+        case MEM_SOUND_NR21:
+            ioreg[MEM_SOUND_NR21 - MEM_IO_REGS] = data;
+            if (!internal) {
+                APU::loadLength2();
+            }
+            break;
+
+        // Sound channel enable
+        // Resides in I/O region
+        case MEM_SOUND_NR14:
+            ioreg[MEM_SOUND_NR14 - MEM_IO_REGS] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerSquare1();
+                }
+            }
+            break;
+        case MEM_SOUND_NR24:
+            ioreg[MEM_SOUND_NR24 - MEM_IO_REGS] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerSquare2();
+                }
+            }
+            break;
+        case MEM_SOUND_NR44:
+            ioreg[MEM_SOUND_NR44 - MEM_IO_REGS] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerNoise();
+                }
             }
             break;
 
