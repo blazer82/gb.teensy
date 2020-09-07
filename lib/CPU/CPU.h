@@ -20,7 +20,6 @@
 
 #include <sys/_stdint.h>
 
-
 class CPU {
    public:
     static volatile bool cpuEnabled;
