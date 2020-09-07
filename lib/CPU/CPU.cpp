@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
+#include "CPU.h"
 
 #include <Arduino.h>
 #include <time.h>
 
-#include "CPU.h"
 #include "Memory.h"
 
 /**
@@ -53,7 +53,7 @@ uint16_t CPU::BC = 0x0013;
 // DE Register
 // Bit 0 - 7:   Gen Purpose E Register
 // Bit 8 - 15:  Gen Purpose D Register
-uint16_t CPU::DE = 0x00D8; 
+uint16_t CPU::DE = 0x00D8;
 
 // HL Register
 // Bit 0 - 7:   Gen Purpose L Register
@@ -158,7 +158,7 @@ uint8_t CPU::readOp() {
      * Read an opcode from the program
      * @return An 8 byte opcode
      */
-    return Memory::readByte(PC++); 
+    return Memory::readByte(PC++);
 }
 
 uint16_t CPU::readNn() {
@@ -197,12 +197,12 @@ uint16_t CPU::popStack() {
     return (n2 << 8) | n1;
 }
 
-void CPU::dumpRegister() { 
+void CPU::dumpRegister() {
     /**
      * Dump out all the CPU regsiters for debugging
      */
-    Serial.printf("AF: %04x, BC: %04x, DE: %04x, HL: %04x, SP: %04x, PC: %04x\n", AF, BC, DE, HL, SP, PC); 
-    }
+    Serial.printf("AF: %04x, BC: %04x, DE: %04x, HL: %04x, SP: %04x, PC: %04x\n", AF, BC, DE, HL, SP, PC);
+}
 
 void CPU::dumpStack() {
     /**
