@@ -131,7 +131,7 @@ void printDiagnostics() {
 
     Serial.print("REG_HCYCLE ");
     Serial.print(ft81x.read16(FT81x_REG_HCYCLE));
-    Serial.println(" (supposed to be 548)");
+    Serial.println(" (supposed to be 518)");
 
     Serial.print("REG_HSIZE ");
     Serial.print(ft81x.read16(FT81x_REG_HSIZE));
@@ -139,7 +139,7 @@ void printDiagnostics() {
 
     Serial.print("REG_VCYCLE ");
     Serial.print(ft81x.read16(FT81x_REG_VCYCLE));
-    Serial.println(" (supposed to be 518)");
+    Serial.println(" (supposed to be 500)");
 
     Serial.print("REG_VSIZE ");
     Serial.print(ft81x.read16(FT81x_REG_VSIZE));
