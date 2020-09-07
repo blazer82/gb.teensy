@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <sys/_stdint.h>
 #include <Arduino.h>
+#include <sys/_stdint.h>
 
 #define AUDIO_OUT_SQUARE1 7
 #define AUDIO_OUT_SQUARE2 6
