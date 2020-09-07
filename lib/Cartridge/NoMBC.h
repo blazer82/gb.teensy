@@ -18,6 +18,7 @@
 #pragma once
 
 #include <sys/_stdint.h>
+
 #include "ACartridge.h"
 
 class NoMBC : public ACartridge {
