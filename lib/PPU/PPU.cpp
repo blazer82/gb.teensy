@@ -99,22 +99,30 @@ void PPU::ppuStep(FT81x &ft81x) {
 
         switch (cycleTicks) {
             case 0:  // reading from OAM memory
+                // TODO: Disable access to OAM during this time
                 lcdStatus = Memory::readByte(MEM_LCD_STATUS);
+                // Set LCDC to Mode 2: Searching OAM
                 Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x02, true);
+                // Trigger an OAM interrupt through LCD STAT if enabled
                 if ((lcdStatus & 0x20) == 0x20) {
                     Memory::interrupt(IRQ_LCD_STAT);
                 }
                 break;
 
             case 20:  // reading from both OAM and VRAM
+                // TODO: Disable access to all video memory during this time
                 lcdStatus = Memory::readByte(MEM_LCD_STATUS);
-                Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x02, true);
+                Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x03, true); // Shouldn't this be 0x03? If things break, return 0x03 to 0x02
+                // Check if we the current line is the same as what's in LY Compare (LYC)
                 if (y == Memory::readByte(MEM_LCD_YC)) {
+                    // Set coincidence flag
                     Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFB) | 0x04, true);
+                    // Trigger coincidence interrupt through LCD STAT if enabled
                     if ((lcdStatus & 0x40) == 0x40) {
                         Memory::interrupt(IRQ_LCD_STAT);
                     }
                 } else {
+                    // Otherwise, clear the coincidence flag
                     Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFB) | 0x00, true);
                 }
                 break;
@@ -122,24 +130,28 @@ void PPU::ppuStep(FT81x &ft81x) {
             case 43:  // H-Blank and V-Blank period
                 lcdc = Memory::readByte(MEM_LCDC);
                 lcdStatus = Memory::readByte(MEM_LCD_STATUS);
-
+                // Check if LCD is enabled
                 if ((lcdc & 0x80) == 0x80) {
                     y = (y + 1) % 152;
-
+                    // Update the current LCD Y coordinate
                     Memory::writeByte(MEM_LCD_Y, y);
+                    // Get the X and Y posision of the background map
                     originY = Memory::readByte(MEM_LCD_SCROLL_Y);
                     originX = Memory::readByte(MEM_LCD_SCROLL_X);
-
+                    // Make sure we're in the visible portion of the screen
                     if (y < 144) {
                         // calculate line
+                        // Check if background is enabled
                         if ((lcdc & 0x01) == 0x01) {
+                            // Get the background
                             getBackgroundForLine(y, frames[calculatingFrame], originX, originY);
                         }
-
+                        // Check if sprites are enabled
                         if ((lcdc & 0x02) == 0x02) {
+                            // Get the sprite
                             getSpritesForLine(y, frames[calculatingFrame]);
                         }
-
+                        
                         Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
                         if ((lcdStatus & 0x08) == 0x08) {
                             Memory::interrupt(IRQ_LCD_STAT);
