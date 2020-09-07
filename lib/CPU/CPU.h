@@ -19,8 +19,7 @@
 #pragma once
 
 #include <sys/_stdint.h>
-#include "Memory.h"
-#include <Arduino.h>
+
 
 class CPU {
    public:

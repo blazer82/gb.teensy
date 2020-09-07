@@ -15,7 +15,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
-
+#include <stdlib.h>
+#include <Arduino.h>
 #include "MBC1.h"
 
 MBC1::MBC1(const char *romFile) : ACartridge(romFile){

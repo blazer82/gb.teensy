@@ -15,13 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
-
 #pragma once
 
 #include <sys/_stdint.h>
 #include "ACartridge.h"
-#include <stdlib.h>
-#include <Arduino.h>
 
 // Control Register Addresses
 #define MBC2_RAM_ENABLE_REG          0x0000

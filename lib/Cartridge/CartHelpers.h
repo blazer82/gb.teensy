@@ -15,12 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
-
 #include <sys/_stdint.h>
-#include <stdlib.h>
-#include <Arduino.h>
-#include <Arduino.h>
-#include <SD.h>
 
 uint8_t lookupMbcType(uint8_t code);
 uint8_t lookupMbcTypeFromCart(const char* romFile);
