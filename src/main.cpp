@@ -19,19 +19,18 @@
 #include <APU.h>
 #include <Arduino.h>
 #include <CPU.h>
+#include <Cartridge.h>
 #include <FT81x.h>
+#include <Joypad.h>
 #include <Memory.h>
 #include <PPU.h>
-#include <Cartridge.h>
-#include <Joypad.h>
 
 void waitForKeyPress();
 void printDiagnostics();
 
 FT81x ft81x = FT81x(10, 9, 8);
 
-static char title[17]; //16 chars for name, 1 for null terminator
-
+static char title[17];  // 16 chars for name, 1 for null terminator
 
 void setup() {
     Serial.begin(115200);
@@ -52,7 +51,6 @@ void setup() {
     Memory::initMemory();
     CPU::cpuEnabled = 1;
 
-
     ft81x.beginDisplayList();
     ft81x.clear(FT81x_COLOR_RGB(0, 0, 0));
     ft81x.drawText(10, 460, 16, FT81x_COLOR_RGB(255, 0, 255), 0, title);
@@ -65,7 +63,6 @@ void setup() {
 }
 
 void loop() {
-
     uint64_t start = millis();
 
     while (true) {
