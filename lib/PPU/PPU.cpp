@@ -33,6 +33,7 @@
 uint16_t PPU::frames[2][160 * 144] = {{0}, {0}};
 uint64_t PPU::ticks = 0;
 uint8_t PPU::originX = 0, PPU::originY = 0, PPU::lcdc = 0, PPU::lcdStatus = 0;
+Memory *PPU::mem = 0;
 
 void PPU::getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t originX, const uint8_t originY) {
     memset(frame + y * 160, 0x33, sizeof(uint16_t) * 160);
