@@ -78,36 +78,36 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
 
         default:
             // Handle writes to the IE register
-            if(location >= MEM_INT_EN_REG){
+            if (location >= MEM_INT_EN_REG) {
                 iereg = data;
             }
             // Handle writes to High RAM
-            else if(location >= MEM_HIGH_RAM){
+            else if (location >= MEM_HIGH_RAM) {
                 hram[location - MEM_HIGH_RAM] = data;
             }
             // Handle writes to IO registers
-            else if(location >= MEM_IO_REGS){
+            else if (location >= MEM_IO_REGS) {
                 ioreg[location - MEM_IO_REGS] = data;
             }
             // Handle writes to unusable memory
-            else if(location >= MEM_UNUSABLE){
+            else if (location >= MEM_UNUSABLE) {
                 return;
             }
             // Handle writes to OAM
-            else if(location >= MEM_SPRITE_ATTR_TABLE){
+            else if (location >= MEM_SPRITE_ATTR_TABLE) {
                 oam[location - MEM_SPRITE_ATTR_TABLE] = data;
             }
             // Handle writes to echo memory
-            else if(location >= MEM_RAM_ECHO){
+            else if (location >= MEM_RAM_ECHO) {
                 // Just write to the beginning of internal RAM
                 wram[location - MEM_RAM_ECHO] = data;
             }
             // Handle writes to internal Work RAM
-            else if(location >= MEM_RAM_INTERNAL){
+            else if (location >= MEM_RAM_INTERNAL) {
                 wram[location - MEM_RAM_INTERNAL] = data;
             }
             // Handle writes to external cartridge RAM
-            if(location >= MEM_RAM_EXTERNAL){
+            if (location >= MEM_RAM_EXTERNAL) {
                 Cartridge::writeByte(location, data);
             }
             // Handle writes to VRAM
@@ -116,10 +116,9 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             }
             // Handle writes to cart ROM
             // These are usually mapped to MBC control registers in the cart
-            else if(location >= MEM_ROM){
+            else if (location >= MEM_ROM) {
                 Cartridge::writeByte(location, data);
-            }
-            else {
+            } else {
                 // Illegal operation
                 Serial.println("Illegal write operation on memory!");
                 Serial.printf("\tAttempted write of 0x%x to 0x%x\n", data, location);
@@ -131,38 +130,38 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
 void Memory::writeByte(const uint16_t location, const uint8_t data) { writeByteInternal(location, data, false); }
 
 uint8_t Memory::readByte(const uint16_t location) {
-        // Handle reads of the IE register
-    if(location >= MEM_INT_EN_REG){
+    // Handle reads of the IE register
+    if (location >= MEM_INT_EN_REG) {
         return iereg;
     }
     // Handle reads from High RAM
-    else if(location >= MEM_HIGH_RAM){
+    else if (location >= MEM_HIGH_RAM) {
         return hram[location - MEM_HIGH_RAM];
     }
     // Handle reads from IO registers
-    else if(location >= MEM_IO_REGS){
+    else if (location >= MEM_IO_REGS) {
         return ioreg[location - MEM_IO_REGS];
     }
     // Handle reads from unusable memory
     // TODO: Assume reads here return 0xFF. Look this up
-    else if(location >= MEM_UNUSABLE){
+    else if (location >= MEM_UNUSABLE) {
         return 0xFF;
     }
     // Handle reads from OAM
-    else if(location >= MEM_SPRITE_ATTR_TABLE){
-        return oam[location - MEM_SPRITE_ATTR_TABLE] ;
+    else if (location >= MEM_SPRITE_ATTR_TABLE) {
+        return oam[location - MEM_SPRITE_ATTR_TABLE];
     }
     // Handle reads from echo memory
-    else if(location >= MEM_RAM_ECHO){
+    else if (location >= MEM_RAM_ECHO) {
         // Just read from the beginning of internal RAM
-        return wram[location - MEM_RAM_ECHO] ;
+        return wram[location - MEM_RAM_ECHO];
     }
     // Handle reads from internal Work RAM
-    else if(location >= MEM_RAM_INTERNAL){
+    else if (location >= MEM_RAM_INTERNAL) {
         return wram[location - MEM_RAM_INTERNAL];
     }
     // Handle reads from external cartridge RAM
-    if(location >= MEM_RAM_EXTERNAL){
+    if (location >= MEM_RAM_EXTERNAL) {
         return Cartridge::readByte(location);
     }
     // Handle reads from VRAM
@@ -170,10 +169,9 @@ uint8_t Memory::readByte(const uint16_t location) {
         return vram[location - MEM_VRAM_TILES];
     }
     // Handle reads from cart ROM
-    else if(location >= MEM_ROM){
+    else if (location >= MEM_ROM) {
         return Cartridge::readByte(location);
-    }
-    else {
+    } else {
         // Illegal operation
         Serial.println("Illegal write operation on memory!");
         Serial.printf("\tAttempted read from 0x%x\n", location);
