@@ -19,6 +19,7 @@
 #include <APU.h>
 #include <Arduino.h>
 #include <CPU.h>
+#include <Cartridge.h>
 #include <FT81x.h>
 #include <Joypad.h>
 #include <Memory.h>
@@ -29,27 +30,25 @@ void printDiagnostics();
 
 FT81x ft81x = FT81x(10, 9, 8);
 
-static char title[16];
+static char title[17];  // 16 chars for name, 1 for null terminator
 
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(115200);
 
     SPI.begin();
-
-    // waitForKeyPress();
 
     Serial.println("Enable display");
     ft81x.begin();
 
     printDiagnostics();
 
-    Serial.println("");
-    Serial.println("Start Gameboy...");
+    Serial.printf("\nStart Gameboy...\n");
+
+    Cartridge::begin("tetris.gb");
+    Cartridge::getGameName(title);
 
     Memory::initMemory();
     CPU::cpuEnabled = 1;
-
-    Memory::getTitle(title);
 
     ft81x.beginDisplayList();
     ft81x.clear(FT81x_COLOR_RGB(0, 0, 0));
@@ -132,7 +131,7 @@ void printDiagnostics() {
 
     Serial.print("REG_HCYCLE ");
     Serial.print(ft81x.read16(FT81x_REG_HCYCLE));
-    Serial.println(" (supposed to be 548)");
+    Serial.println(" (supposed to be 518)");
 
     Serial.print("REG_HSIZE ");
     Serial.print(ft81x.read16(FT81x_REG_HSIZE));
@@ -140,7 +139,7 @@ void printDiagnostics() {
 
     Serial.print("REG_VCYCLE ");
     Serial.print(ft81x.read16(FT81x_REG_VCYCLE));
-    Serial.println(" (supposed to be 518)");
+    Serial.println(" (supposed to be 500)");
 
     Serial.print("REG_VSIZE ");
     Serial.print(ft81x.read16(FT81x_REG_VSIZE));

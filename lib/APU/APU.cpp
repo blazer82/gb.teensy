@@ -15,8 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
-
 #include "APU.h"
+
+#include <Arduino.h>
 
 #include "Memory.h"
 
@@ -80,7 +81,7 @@ void APU::apuStep() {
         }
 
         const nr43_register_t nr43 = {.value = Memory::readByte(MEM_SOUND_NR43)};
-        const uint16_t noiseFreq = 0x8000 / (APU::divisor[nr43.bits.divisor] << nr43.bits.shift);  // This calculation is probably wrong
+        const uint16_t noiseFreq = 0x80000 / APU::divisor[nr43.bits.divisor] / (1 << (nr43.bits.shift + 1));
 
         if (APU::currentNoiseFrequency != noiseFreq) {
             APU::currentNoiseFrequency = noiseFreq;

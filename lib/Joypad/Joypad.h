@@ -1,3 +1,4 @@
+
 /**
  * gb.teensy Emulation Software
  * Copyright (C) 2020  Raphael Stäbler
@@ -35,5 +36,29 @@ class Joypad {
     static void joypadStep();
 
    protected:
+    static uint8_t previousValue;
+
+    typedef union {
+        struct {
+            unsigned right : 1;
+            unsigned left : 1;
+            unsigned up : 1;
+            unsigned down : 1;
+            unsigned selectDirection : 1;
+            unsigned selectButton : 1;
+            unsigned : 2;
+        } direction;
+        struct {
+            unsigned a : 1;
+            unsigned b : 1;
+            unsigned select : 1;
+            unsigned start : 1;
+            unsigned selectDirection : 1;
+            unsigned selectButton : 1;
+            unsigned : 2;
+        } button;
+        uint8_t value;
+    } joypad_register_t;
+
    private:
 };

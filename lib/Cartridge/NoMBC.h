@@ -17,15 +17,18 @@
  **/
 #pragma once
 
+#include <sys/_stdint.h>
+
 #include "ACartridge.h"
 
-class Cartridge {
+class NoMBC : public ACartridge {
    public:
-    static uint8_t begin(const char* romFile);
-    static void writeByte(const uint16_t addr, const uint8_t data);
-    static uint8_t readByte(const uint16_t addr);
-    static void getGameName(char* buf);
+    NoMBC(const char* romFile);
+    ~NoMBC();
+    uint8_t readByte(uint16_t addr) override;
+    void writeByte(uint16_t addr, uint8_t data) override;
 
    private:
-    static ACartridge* cart;
+    uint8_t* rom;
+    uint8_t* ram;
 };

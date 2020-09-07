@@ -20,12 +20,15 @@
 
 #include <Arduino.h>
 #include <FT81x.h>
+#include <Memory.h>
 
 class PPU {
    public:
     static void ppuStep(FT81x &ft81x);
 
    protected:
+    // Handle to Memory
+    static Memory *mem;
     static uint16_t frames[2][160 * 144];
     static uint64_t ticks;
     static uint8_t originX, originY, lcdc, lcdStatus;
