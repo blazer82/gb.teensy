@@ -33,6 +33,7 @@ class ACartridge {
     uint8_t getRomCode();
     uint8_t getRamCode();
     char* getGameName();
+
    protected:
     // Metadata about the cart
     uint8_t cartCode;
@@ -60,4 +61,3 @@ class ACartridge {
     // Human readable name for the ROM
     char name[16];
 };
-

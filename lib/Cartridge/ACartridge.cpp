@@ -15,13 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
-#include <stdlib.h>
+#include "ACartridge.h"
 #include <Arduino.h>
 #include <SD.h>
 #include <SPI.h>
-#include "ACartridge.h"
+#include <stdlib.h>
 
-ACartridge::ACartridge(const char* romFile){
+ACartridge::ACartridge(const char* romFile) {
     Serial.println("Initializing SD card...");
     // See if the card is present and can be initialized
     if (!SD.begin(BUILTIN_SDCARD)) {
@@ -29,7 +29,6 @@ ACartridge::ACartridge(const char* romFile){
         return;
     }
     Serial.println("SD Card Initialized!");
-    
 
     dataFile = SD.open(romFile);
     if (dataFile) {
@@ -49,7 +48,7 @@ ACartridge::ACartridge(const char* romFile){
         ramSize = lookupRamSize(ramCode);
         // Get the name of the cart
         dataFile.seek(CART_NAME);
-        for(uint8_t i = 0; i < 16; i++){
+        for (uint8_t i = 0; i < 16; i++) {
             name[i] = dataFile.read();
         }
         Serial.println("Cartridge Info:");
@@ -67,29 +66,17 @@ ACartridge::ACartridge(const char* romFile){
         Serial.printf("\tRAM Banks: %i\n", ramBankCount);
         Serial.printf("\tRAM Size: 0x%x\n", ramSize);
         Serial.printf("\tRAM Bank Size: 0x%x\n", ramBankSize);
-    }
-    else{
+    } else {
         Serial.println("Unable to read cartridge");
     }
-
 }
 
-ACartridge::~ACartridge(){
-    Serial.println("Deleting Cartridge");
-}
+ACartridge::~ACartridge() { Serial.println("Deleting Cartridge"); }
 
-uint8_t ACartridge::getCartCode(){
-    return cartCode;
-}
+uint8_t ACartridge::getCartCode() { return cartCode; }
 
-uint8_t ACartridge::getRomCode(){
-    return romCode;
-}
+uint8_t ACartridge::getRomCode() { return romCode; }
 
-uint8_t ACartridge::getRamCode(){
-    return ramCode;
-}
+uint8_t ACartridge::getRamCode() { return ramCode; }
 
-char* ACartridge::getGameName(){
-    return name;
-}
+char* ACartridge::getGameName() { return name; }

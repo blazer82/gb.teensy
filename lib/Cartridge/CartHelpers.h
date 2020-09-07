@@ -18,30 +18,30 @@
 #include <sys/_stdint.h>
 
 // Defines I made to differentiate memory bank controllers
-#define USES_NOMBC          0x0
-#define USES_MBC1           0x1
-#define USES_MBC2           0x2
-#define USES_MMM01          0x3
-#define USES_MBC3           0x4
-#define USES_MBC5           0x5
-#define USES_MBC6           0x6
-#define USES_MBC7           0x7
-#define USES_POCKETCAM      0x8
-#define USES_BANDAITAMA     0x9
-#define USES_HUC3           0xA
-#define USES_HUC1           0xB
+#define USES_NOMBC 0x0
+#define USES_MBC1 0x1
+#define USES_MBC2 0x2
+#define USES_MMM01 0x3
+#define USES_MBC3 0x4
+#define USES_MBC5 0x5
+#define USES_MBC6 0x6
+#define USES_MBC7 0x7
+#define USES_POCKETCAM 0x8
+#define USES_BANDAITAMA 0x9
+#define USES_HUC3 0xA
+#define USES_HUC1 0xB
 
 // Cartridge metadata
-#define RAM_CODE            0x149
-#define ROM_CODE            0x148
-#define CART_CODE           0x147
-#define CART_NAME           0x134
-#define ROM_BANK_SIZE       0x4000
+#define RAM_CODE 0x149
+#define ROM_CODE 0x148
+#define CART_CODE 0x147
+#define CART_NAME 0x134
+#define ROM_BANK_SIZE 0x4000
 
 // Cartridge Memory Regions
-#define CART_ROM_ZERO       0X0000 // Technically, this can also be banked
-#define CART_ROM_BANKED     0x4000
-#define CART_RAM            0xA000
+#define CART_ROM_ZERO 0X0000  // Technically, this can also be banked
+#define CART_ROM_BANKED 0x4000
+#define CART_RAM 0xA000
 
 uint8_t lookupMbcType(uint8_t code);
 uint8_t lookupMbcTypeFromCart(const char* romFile);

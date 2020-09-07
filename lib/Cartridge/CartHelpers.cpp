@@ -15,14 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
-#include <stdlib.h>
-#include <Arduino.h>
+#include "CartHelpers.h"
 #include <Arduino.h>
 #include <SD.h>
-#include "CartHelpers.h"
+#include <stdlib.h>
 
 const char noMbc[] PROGMEM = "NO MBC";
-const char unknown[] PROGMEM  = "UNKNOWN";
+const char unknown[] PROGMEM = "UNKNOWN";
 const char romOnly[] PROGMEM = "ROM ONLY";
 const char mbc1[] PROGMEM = "MBC1";
 const char mbc1Ram[] PROGMEM = "MBC1+RAM";
@@ -54,8 +53,8 @@ const char huc3[] PROGMEM = "HuC3";
 const char huc1[] PROGMEM = "HuC1";
 const char huc1RamBatt[] PROGMEM = "HuC1+RAM+BATTERY";
 
-uint8_t lookupMbcType(uint8_t code){
-    switch(code){
+uint8_t lookupMbcType(uint8_t code) {
+    switch (code) {
         case 0x00:
             return USES_NOMBC;
         case 0x01:
@@ -117,7 +116,7 @@ uint8_t lookupMbcType(uint8_t code){
     }
 }
 
-uint8_t lookupMbcTypeFromCart(const char* romFile){
+uint8_t lookupMbcTypeFromCart(const char* romFile) {
     Serial.println("Initializing SD card...");
     uint8_t ret;
     // See if the card is present and can be initialized
@@ -130,8 +129,7 @@ uint8_t lookupMbcTypeFromCart(const char* romFile){
         // Get the cartridge code
         dataFile.seek(CART_CODE);
         ret = lookupMbcType(dataFile.read());
-    }
-    else{
+    } else {
         Serial.println("Unable to read cartridge");
         ret = lookupMbcType(0x0);
     }
@@ -139,8 +137,8 @@ uint8_t lookupMbcTypeFromCart(const char* romFile){
     return ret;
 }
 
-uint16_t lookupRamBankSize(uint8_t code){
-    switch(code){
+uint16_t lookupRamBankSize(uint8_t code) {
+    switch (code) {
         case 0x0:
             return 0x0;
         case 0x1:
@@ -150,8 +148,8 @@ uint16_t lookupRamBankSize(uint8_t code){
     }
 }
 
-uint32_t lookupRomSize(uint8_t code){
-    switch(code){
+uint32_t lookupRomSize(uint8_t code) {
+    switch (code) {
         case 0x0:
             return 0x8000;
         case 0x1:
@@ -181,8 +179,8 @@ uint32_t lookupRomSize(uint8_t code){
     }
 }
 
-uint32_t lookupRamSize(uint8_t code){
-    switch(code){
+uint32_t lookupRamSize(uint8_t code) {
+    switch (code) {
         case 0x0:
             return 0;
         case 0x1:
@@ -200,8 +198,8 @@ uint32_t lookupRamSize(uint8_t code){
     }
 }
 
-uint16_t lookupRomBanks(uint8_t code){
-    switch(code){
+uint16_t lookupRomBanks(uint8_t code) {
+    switch (code) {
         case 0x0:
             return 1;
         case 0x1:
@@ -231,8 +229,8 @@ uint16_t lookupRomBanks(uint8_t code){
     }
 }
 
-uint8_t lookupRamBanks(uint8_t code){
-    switch(code){
+uint8_t lookupRamBanks(uint8_t code) {
+    switch (code) {
         case 0x0:
             return 0;
         case 0x1:
@@ -250,8 +248,8 @@ uint8_t lookupRamBanks(uint8_t code){
     }
 }
 
-const char* lookupCartType(uint8_t code){
-    switch(code){
+const char* lookupCartType(uint8_t code) {
+    switch (code) {
         case 0x00:
             return romOnly;
         case 0x01:
@@ -297,8 +295,8 @@ const char* lookupCartType(uint8_t code){
     }
 }
 
-const char* lookupMBCTypeString(uint8_t code){
-    switch(code){
+const char* lookupMBCTypeString(uint8_t code) {
+    switch (code) {
         case 0x00:
             return noMbc;
         case 0x01:

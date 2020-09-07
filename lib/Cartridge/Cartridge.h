@@ -25,6 +25,7 @@ class Cartridge {
     static void writeByte(const uint16_t addr, const uint8_t data);
     static uint8_t readByte(const uint16_t addr);
     static void getGameName(char* buf);
+
    private:
     static ACartridge* cart;
 };
