@@ -29,9 +29,24 @@ MBC1::MBC1(const char *romFile) : ACartridge(romFile) {
 
     // Allocate memory for ROM banks
     romBanks = (uint8_t **)malloc(romBankCount * sizeof(uint8_t *));
-    for (uint8_t i = 0; i < romBankCount; i++) {
+    for (uint8_t i = 0; i < romBankCount + 1; i++) {
         romBanks[i] = (uint8_t *)malloc(ROM_BANK_SIZE * sizeof(uint8_t));
     }
+
+    // Write the ROM data to memory
+    Serial.println("Loading ROM into memory...");
+    File dataFile = SD.open(romFile);
+    if (dataFile) {
+        for (uint8_t i = 0; i < romBankCount + 1; i++) {
+            for (uint16_t j = 0; j < ROM_BANK_SIZE; j++) {
+                romBanks[i][j] = dataFile.read();
+            }
+        }
+    } else {
+        Serial.printf("Could not open rom file %s\n", romFile);
+    }
+    Serial.println();
+    Serial.println("ROM Loaded!");
 
     // Allocate memory for the RAM banks
     ramBanks = (uint8_t **)malloc(ramBankCount * sizeof(uint8_t *));

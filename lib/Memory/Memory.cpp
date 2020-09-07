@@ -21,6 +21,8 @@
 #include <Arduino.h>
 #include <string.h>
 
+#include "APU.h"
+
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 uint8_t Memory::vram[0x2000] = {0};
@@ -73,6 +75,48 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             } else {
                 // Writes to the divider just clear it
                 ioreg[MEM_DIVIDER - MEM_IO_REGS] = 0x00;
+            }
+            break;
+
+        // Sound length counter
+        // Resides in I/O region
+        case MEM_SOUND_NR11:
+            ioreg[MEM_SOUND_NR11 - MEM_IO_REGS] = data;
+            if (!internal) {
+                APU::loadLength1();
+            }
+            break;
+        case MEM_SOUND_NR21:
+            ioreg[MEM_SOUND_NR21 - MEM_IO_REGS] = data;
+            if (!internal) {
+                APU::loadLength2();
+            }
+            break;
+
+        // Sound channel enable
+        // Resides in I/O region
+        case MEM_SOUND_NR14:
+            ioreg[MEM_SOUND_NR14 - MEM_IO_REGS] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerSquare1();
+                }
+            }
+            break;
+        case MEM_SOUND_NR24:
+            ioreg[MEM_SOUND_NR24 - MEM_IO_REGS] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerSquare2();
+                }
+            }
+            break;
+        case MEM_SOUND_NR44:
+            ioreg[MEM_SOUND_NR44 - MEM_IO_REGS] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerNoise();
+                }
             }
             break;
 
@@ -181,28 +225,25 @@ uint8_t Memory::readByte(const uint16_t location) {
 void Memory::interrupt(uint8_t flag) { writeByte(MEM_IRQ_FLAG, readByte(MEM_IRQ_FLAG) | flag); }
 
 void Memory::initMemory() {
-    // Reset memory to zero
-    // memset(memory, 0, 0xFFFF - 0x8000 + 1);
-
     // Init joypad flags
     writeByteInternal(MEM_JOYPAD, 0x2F, true);
 
     // Init memory according to original GB
-    writeByteInternal(0xFF10, 0x80, true);
-    writeByteInternal(0xFF11, 0xBF, true);
-    writeByteInternal(0xFF12, 0xF3, true);
-    writeByteInternal(0xFF14, 0xBF, true);
-    writeByteInternal(0xFF16, 0x3F, true);
-    writeByteInternal(0xFF19, 0xBF, true);
-    writeByteInternal(0xFF1A, 0x7F, true);
-    writeByteInternal(0xFF1B, 0xFF, true);
-    writeByteInternal(0xFF1C, 0x9F, true);
-    writeByteInternal(0xFF1E, 0xBF, true);
-    writeByteInternal(0xFF20, 0xFF, true);
-    writeByteInternal(0xFF23, 0xBF, true);
-    writeByteInternal(0xFF24, 0x77, true);
-    writeByteInternal(0xFF25, 0xF3, true);
-    writeByteInternal(0xFF26, 0xF1, true);
+    writeByteInternal(MEM_SOUND_NR10, 0x80, true);
+    writeByteInternal(MEM_SOUND_NR11, 0xBF, true);
+    writeByteInternal(MEM_SOUND_NR12, 0xF3, true);
+    writeByteInternal(MEM_SOUND_NR14, 0xBF, true);
+    writeByteInternal(MEM_SOUND_NR21, 0x3F, true);
+    writeByteInternal(MEM_SOUND_NR24, 0xBF, true);
+    writeByteInternal(MEM_SOUND_NR30, 0x7F, true);
+    writeByteInternal(MEM_SOUND_NR31, 0xFF, true);
+    writeByteInternal(MEM_SOUND_NR32, 0x9F, true);
+    writeByteInternal(MEM_SOUND_NR34, 0xBF, true);
+    writeByteInternal(MEM_SOUND_NR41, 0xFF, true);
+    writeByteInternal(MEM_SOUND_NR44, 0xBF, true);
+    writeByteInternal(MEM_SOUND_NR50, 0x77, true);
+    writeByteInternal(MEM_SOUND_NR51, 0xF3, true);
+    writeByteInternal(MEM_SOUND_NR52, 0xF1, true);
     writeByteInternal(MEM_LCDC, 0x91, true);
     writeByteInternal(0xFF47, 0xFC, true);
     writeByteInternal(0xFF48, 0xFF, true);

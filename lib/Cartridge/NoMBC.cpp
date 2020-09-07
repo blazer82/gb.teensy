@@ -32,10 +32,6 @@ NoMBC::NoMBC(const char *romFile) : ACartridge(romFile) {
     if (dataFile) {
         for (uint16_t i = 0; i < ROM_BANK_SIZE * 2; i++) {
             rom[i] = dataFile.read();
-            // if((i % 32) == 0){
-            //     Serial.printf("\n0x%04x: ", i);
-            // }
-            // Serial.printf("0x%02x ", rom[i]);
         }
     } else {
         Serial.printf("Could not open rom file %s\n", romFile);
