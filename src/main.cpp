@@ -37,7 +37,6 @@ void setup() {
 
     SPI.begin();
 
-    // waitForKeyPress();
     Serial.println("Enable display");
     ft81x.begin();
 
