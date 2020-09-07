@@ -191,7 +191,7 @@
 #define IRQ_VBLANK   0x0001
 #define IRQ_LCD_STAT 0x0002
 #define IRQ_TIMER    0x0004
-#define IRQ_SERIAL   0x00008
+#define IRQ_SERIAL   0x0008
 #define IRQ_JOYPAD   0x0010
 
 /*      Jump Vectors    */
