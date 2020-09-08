@@ -20,7 +20,6 @@
 
 #include <Arduino.h>
 #include <Cartridge.h>
-#include <sys/_stdint.h>
 
 #include "MBC1.h"
 #include "MBC2.h"

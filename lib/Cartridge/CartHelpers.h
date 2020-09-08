@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
-#include <sys/_stdint.h>
+#include <Arduino.h>
 
 // Defines I made to differentiate memory bank controllers
 #define USES_NOMBC      0x0
