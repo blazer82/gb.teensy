@@ -37,7 +37,7 @@ void setup() {
 
     SPI.begin();
 
-    waitForKeyPress();
+    // waitForKeyPress();
 
     Serial.println("Enable display");
     ft81x.begin();
@@ -46,7 +46,7 @@ void setup() {
 
     Serial.printf("\nStart Gameboy...\n");
 
-    Cartridge::begin("tennis.gb");
+    Cartridge::begin("mario.gb");
     Cartridge::getGameName(title);
 
     Memory::initMemory();
