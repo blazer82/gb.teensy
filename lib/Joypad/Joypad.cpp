@@ -20,7 +20,7 @@
 
 #include "Memory.h"
 
-uint8_t Joypad::previousValue = 0;
+joypad_combined_t Joypad::previousValue = {.value = 0xFF};
 
 void Joypad::begin() {
     pinMode(JOYPAD_START, INPUT_PULLUP);
@@ -31,31 +31,40 @@ void Joypad::begin() {
     pinMode(JOYPAD_DOWN, INPUT_PULLUP);
     pinMode(JOYPAD_B, INPUT_PULLUP);
     pinMode(JOYPAD_A, INPUT_PULLUP);
-
-    Joypad::previousValue = Memory::readByte(MEM_JOYPAD) & 0xF;
 }
 
 void Joypad::joypadStep() {
     joypad_register_t joypad = {.value = Memory::readByte(MEM_JOYPAD)};
 
+    // Handle direction key input
+    // Interrupts are also handled inside this condition!
     if (joypad.direction.selectDirection == 0) {
         joypad.direction.left = digitalReadFast(JOYPAD_LEFT);
         joypad.direction.right = digitalReadFast(JOYPAD_RIGHT);
         joypad.direction.up = digitalReadFast(JOYPAD_UP);
         joypad.direction.down = digitalReadFast(JOYPAD_DOWN);
+
         Memory::writeByteInternal(MEM_JOYPAD, joypad.value, true);
+
+        if ((joypad.value & 0xF) != 0xF && Joypad::previousValue.parts.direction != (joypad.value & 0xF)) {
+            Memory::interrupt(IRQ_JOYPAD);
+        }
+        Joypad::previousValue.parts.direction = joypad.value & 0xF;
     }
 
+    // Handle button key input
+    // Interrupts are also handled inside this condition!
     if (joypad.button.selectButton == 0) {
         joypad.button.start = digitalReadFast(JOYPAD_START);
         joypad.button.select = digitalReadFast(JOYPAD_SELECT);
         joypad.button.a = digitalReadFast(JOYPAD_A);
         joypad.button.b = digitalReadFast(JOYPAD_B);
-        Memory::writeByteInternal(MEM_JOYPAD, joypad.value, true);
-    }
 
-    if ((joypad.value & 0xF) != 0xF && (joypad.value & 0xF) != Joypad::previousValue) {
-        Memory::interrupt(IRQ_JOYPAD);
-        Joypad::previousValue = Memory::readByte(MEM_JOYPAD) & 0xF;
+        Memory::writeByteInternal(MEM_JOYPAD, joypad.value, true);
+
+        if ((joypad.value & 0xF) != 0xF && Joypad::previousValue.parts.button != (joypad.value & 0xF)) {
+            Memory::interrupt(IRQ_JOYPAD);
+        }
+        Joypad::previousValue.parts.button = joypad.value & 0xF;
     }
 }

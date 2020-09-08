@@ -30,35 +30,43 @@
 #define JOYPAD_B      22
 #define JOYPAD_A      23
 
+typedef union {
+    struct {
+        unsigned right : 1;
+        unsigned left : 1;
+        unsigned up : 1;
+        unsigned down : 1;
+        unsigned selectDirection : 1;
+        unsigned selectButton : 1;
+        unsigned : 2;
+    } direction;
+    struct {
+        unsigned a : 1;
+        unsigned b : 1;
+        unsigned select : 1;
+        unsigned start : 1;
+        unsigned selectDirection : 1;
+        unsigned selectButton : 1;
+        unsigned : 2;
+    } button;
+    uint8_t value;
+} joypad_register_t;
+
+typedef union {
+    struct {
+        unsigned direction : 4;
+        unsigned button : 4;
+    } parts;
+    uint8_t value;
+} joypad_combined_t;
+
 class Joypad {
    public:
     static void begin();
     static void joypadStep();
 
    protected:
-    static uint8_t previousValue;
-
-    typedef union {
-        struct {
-            unsigned right : 1;
-            unsigned left : 1;
-            unsigned up : 1;
-            unsigned down : 1;
-            unsigned selectDirection : 1;
-            unsigned selectButton : 1;
-            unsigned : 2;
-        } direction;
-        struct {
-            unsigned a : 1;
-            unsigned b : 1;
-            unsigned select : 1;
-            unsigned start : 1;
-            unsigned selectDirection : 1;
-            unsigned selectButton : 1;
-            unsigned : 2;
-        } button;
-        uint8_t value;
-    } joypad_register_t;
+    static joypad_combined_t previousValue;
 
    private:
 };
