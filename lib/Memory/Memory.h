@@ -170,7 +170,7 @@
 //      Tileset 0: Tiles -1 to -128
 //  B2: 0x9000 - 0x97FF
 //      Tileset 0: Tiles 0 to 127
-#define MEM_VRAM_TILES 0x8000
+#define MEM_VRAM_TILES    0x8000
 #define MEM_VRAM_TILES_B1 0x8800
 #define MEM_VRAM_TILES_B2 0x9000
 

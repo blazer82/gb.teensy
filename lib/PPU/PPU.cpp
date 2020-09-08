@@ -18,25 +18,24 @@
 
 /**
  * How the PPU Works
- * 
+ *
  * Rendering a frame:
  * Graphics are loaded to the LCD via Scanline Rendering. This allows for
  * a much smaller memory footprint since the system only needs a buffer
  * the size of a single row of pixels. This buffer is called the line buffer
- * The graphics are rendered from the top down in a raster pattern, just 
+ * The graphics are rendered from the top down in a raster pattern, just
  * like a CRT display.
- * 
+ *
  * Each line is loaded like this:
- * 1) Load the current row of the background tiles or window tiles to the 
+ * 1) Load the current row of the background tiles or window tiles to the
  * line buffer
  * 2) Sprite engine places the sprites with 1 pixel accuracy
- * 3) Overwrite line buffer with data from sprites, if they are on the 
+ * 3) Overwrite line buffer with data from sprites, if they are on the
  * current line
- * 
+ *
  * This routine is repeated 144 times to form a single frame
- * 
-*/
-
+ *
+ */
 
 // PPU TODOs:
 //  Make sure all bits in LCDC are being acted upon
@@ -49,7 +48,7 @@
 //      DONE Bit 1: Sprite display enable
 //      Bit 0: BG/Window Display/Priority
 //  Look in to how windows work, implement that behavior
-//  Implement Background and sprite (OPB0, OBP1) color palettes 
+//  Implement Background and sprite (OPB0, OBP1) color palettes
 
 #include "PPU.h"
 
@@ -81,7 +80,7 @@ void PPU::getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t o
     // Check to see which Background Tile Map is selected
     uint16_t bgTileMap = MEM_VRAM_MAP1;
     // Read bit 3 of LCDC to get the Background Tile Map
-    if((lcdc & 0x08) == 0x08){
+    if ((lcdc & 0x08) == 0x08) {
         // If it's set, use the second tilemap
         bgTileMap = MEM_VRAM_MAP2;
     }
@@ -91,9 +90,9 @@ void PPU::getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t o
     bool convertTileIndex = true;
     // If LCDC bit 4 is set, use VRAM Tiles Block0 as a base pointer
     // for the tiles and access them with an unsigned index (0 - 255)
-    // Otherwise, use VRAM Tiles Block1 as a base pointer for the 
+    // Otherwise, use VRAM Tiles Block1 as a base pointer for the
     // tiles and access them with a signed index (-128 to 127)
-    if((lcdc & 0x10) == 0x10){
+    if ((lcdc & 0x10) == 0x10) {
         baseTilePtr = MEM_VRAM_TILES;
         convertTileIndex = false;
     }
@@ -101,13 +100,12 @@ void PPU::getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t o
     for (uint8_t i = 0; i < 20; i++) {
         tileIndex = Memory::readByte(bgTileMap + i + 32 * (tilePosY / 8));
         // Check to see if the tile index needs to be converted to a signed number
-        if(convertTileIndex){
+        if (convertTileIndex) {
             // Convert the tile index and use it
             signedTileIndex = (int8_t)tileIndex;
             tileLineL = Memory::readByte(baseTilePtr + signedTileIndex * 16 + tileLineY * 2);
             tileLineU = Memory::readByte(baseTilePtr + signedTileIndex * 16 + tileLineY * 2 + 1);
-        }
-        else{
+        } else {
             // Use the tile index as an unsigned number
             tileLineL = Memory::readByte(baseTilePtr + tileIndex * 16 + tileLineY * 2);
             tileLineU = Memory::readByte(baseTilePtr + tileIndex * 16 + tileLineY * 2 + 1);
@@ -178,7 +176,8 @@ void PPU::ppuStep(FT81x &ft81x) {
                 // TODO: Disable access to all video memory during this time
                 lcdStatus = Memory::readByte(MEM_LCD_STATUS);
                 // Set LCD STAT to mode 0x3, Transfer Data to LCD Driver
-                Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x03, true); // BUG: Shouldn't this be 0x03? If things break, return 0x03 to 0x02
+                Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x03,
+                                          true);  // BUG: Shouldn't this be 0x03? If things break, return 0x03 to 0x02
                 // Check if we the current line is the same as what's in LY Compare (LYC)
                 if (y == Memory::readByte(MEM_LCD_YC)) {
                     // Set coincidence flag
@@ -212,7 +211,7 @@ void PPU::ppuStep(FT81x &ft81x) {
                         // A cycle accurate system would transfer data over,
                         // pixel by pixel, during the transfer phase. Instead,
                         // We get the whole line at once as soon as we hit H-Blank
-                        // This will need to be rewritten if we ever need to 
+                        // This will need to be rewritten if we ever need to
                         // emulate some behavior that takes place mid-scanline
 
                         // Check if background is enabled
@@ -231,7 +230,7 @@ void PPU::ppuStep(FT81x &ft81x) {
                         if ((lcdStatus & 0x08) == 0x08) {
                             Memory::interrupt(IRQ_LCD_STAT);
                         }
-                    // If we're outside viewable area, we're in VBLANK
+                        // If we're outside viewable area, we're in VBLANK
                     } else if (y == 144) {
                         // Set LCD STAT to mode 1, VBlank
                         Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
