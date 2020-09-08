@@ -35,6 +35,7 @@ class PPU {
 
     static void getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t originX, const uint8_t originY);
     static void getSpritesForLine(const uint8_t y, uint16_t *frame);
+    static void getWindowForLine(const uint8_t y, uint16_t *frame);
     static void mapColorsForFrame(uint16_t *frame);
 
    private:

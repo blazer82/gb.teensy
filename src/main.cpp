@@ -46,7 +46,7 @@ void setup() {
 
     Serial.printf("\nStart Gameboy...\n");
 
-    Cartridge::begin("mario.gb");
+    Cartridge::begin("tennis.gb");
     Cartridge::getGameName(title);
 
     Memory::initMemory();

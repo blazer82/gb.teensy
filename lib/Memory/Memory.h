@@ -93,6 +93,19 @@
 // LYC: LY Compare
 #define MEM_LCD_YC 0xFF45
 
+// BGP: Background Color Palette
+#define MEM_BGP 0xFF47
+
+// OBP0: Object (Sprite) Color Palette 0
+// Assigns grays for sprite palette 0
+// Lower two bits aren't used, 0b00 is transparent
+#define MEM_OBP0 0xFF48
+
+// OBP1: Object (Sprite) Color Palette 1
+// Assigns grays for  sprite palette 1
+// Lower two bits aren't used, 0b00 is transparent
+#define MEM_OBP1 0xFF49
+
 // WY: Window Y Position (R/W)
 // Y Position of the window area
 #define MEM_WY 0xFF4A
@@ -147,7 +160,16 @@
 #define MEM_VRAM 0x8000
 
 // Background Tile Map Numbers
+// 0x8000 - 0x97FF
 // Contains the numbers of the tiles to be displayed
+// Three "blocks" of 128 tiles
+//  B0: 0x8000 - 0x87FF
+//      Tileset 1: Tiles 0 to 127
+//  B1: 0x8800 - 0x8FFF
+//      Tileset 1: Tiles 128 to 255
+//      Tileset 0: Tiles -1 to -128
+//  B2: 0x9000 - 0x97FF
+//      Tileset 0: Tiles 0 to 127
 #define MEM_VRAM_TILES 0x8000
 
 // Backgound Tile Map 1

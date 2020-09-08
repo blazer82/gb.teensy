@@ -16,6 +16,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
+/**
+ * How the PPU Works
+ * 
+ * Rendering a frame:
+ * Graphics are loaded to the LCD via Scanline Rendering. This allows for
+ * a much smaller memory footprint since the system only needs a buffer
+ * the size of a single row of pixels. This buffer is called the line buffer
+ * The graphics are rendered from the top down in a raster pattern, just 
+ * like a CRT display.
+ * 
+ * Each line is loaded like this:
+ * 1) Load the current row of the background tiles or window tiles to the 
+ * line buffer
+ * 2) Sprite engine places the sprites with 1 pixel accuracy
+ * 3) Overwrite line buffer with data from sprites, if they are on the 
+ * current line
+ * 
+ * This routine is repeated 144 times to form a single frame
+ * 
+*/
+
+
+// PPU TODOs:
+//  Make sure all bits in LCDC are being acted upon
+//      Background and sprite enable are being checked
+//  Make sure all bits in LCD STAT are being acted upon
+//  Look in to how "windows" work, implement that behavior (Use WY, WX)
+//  Implement Background and sprite (OPB0, OBP1) color palettes 
+
 #include "PPU.h"
 
 #include <math.h>
@@ -33,7 +62,6 @@
 uint16_t PPU::frames[2][160 * 144] = {{0}, {0}};
 uint64_t PPU::ticks = 0;
 uint8_t PPU::originX = 0, PPU::originY = 0, PPU::lcdc = 0, PPU::lcdStatus = 0;
-Memory *PPU::mem = 0;
 
 void PPU::getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t originX, const uint8_t originY) {
     memset(frame + y * 160, 0x33, sizeof(uint16_t) * 160);
@@ -41,9 +69,15 @@ void PPU::getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t o
 
     uint8_t tilePosY = floor(y / 8) * 8;
     uint8_t tileLineY = y - tilePosY;
-
+    // Check to see which Background Tile Map is selected
+    uint16_t bgTileMap = MEM_VRAM_MAP1;
+    // Read bit 3 of LCDC to get the Background Tile Map
+    if(Memory::readByte(MEM_LCDC & 0x08) == 0x08){
+        // If it's set, use the second tilemap
+        bgTileMap = MEM_VRAM_MAP2;
+    }
     for (uint8_t i = 0; i < 20; i++) {
-        tileIndex = Memory::readByte(MEM_VRAM_MAP1 + i + 32 * (tilePosY / 8));
+        tileIndex = Memory::readByte(bgTileMap + i + 32 * (tilePosY / 8));
         tileLineL = Memory::readByte(MEM_VRAM_TILES + tileIndex * 16 + tileLineY * 2);
         tileLineU = Memory::readByte(MEM_VRAM_TILES + tileIndex * 16 + tileLineY * 2 + 1);
 
@@ -101,7 +135,7 @@ void PPU::ppuStep(FT81x &ft81x) {
             case 0:  // reading from OAM memory
                 // TODO: Disable access to OAM during this time
                 lcdStatus = Memory::readByte(MEM_LCD_STATUS);
-                // Set LCDC to Mode 2: Searching OAM
+                // Set LCD STAT to Mode 2: Searching OAM
                 Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x02, true);
                 // Trigger an OAM interrupt through LCD STAT if enabled
                 if ((lcdStatus & 0x20) == 0x20) {
@@ -112,7 +146,8 @@ void PPU::ppuStep(FT81x &ft81x) {
             case 20:  // reading from both OAM and VRAM
                 // TODO: Disable access to all video memory during this time
                 lcdStatus = Memory::readByte(MEM_LCD_STATUS);
-                Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x03, true); // Shouldn't this be 0x03? If things break, return 0x03 to 0x02
+                // Set LCD STAT to mode 0x3, Transfer Data to LCD Driver
+                Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x03, true); // BUG: Shouldn't this be 0x03? If things break, return 0x03 to 0x02
                 // Check if we the current line is the same as what's in LY Compare (LYC)
                 if (y == Memory::readByte(MEM_LCD_YC)) {
                     // Set coincidence flag
@@ -140,34 +175,49 @@ void PPU::ppuStep(FT81x &ft81x) {
                     originX = Memory::readByte(MEM_LCD_SCROLL_X);
                     // Make sure we're in the visible portion of the screen
                     if (y < 144) {
-                        // calculate line
+                        // Because of how our screen works in the emulator, we
+                        // perform the entire line transfer immediately after
+                        // the Game Boy's "transfer" phase.
+                        // A cycle accurate system would transfer data over,
+                        // pixel by pixel, during the transfer phase. Instead,
+                        // We get the whole line at once as soon as we hit H-Blank
+                        // This will need to be rewritten if we ever need to 
+                        // emulate some behavior that takes place mid-scanline
+
                         // Check if background is enabled
                         if ((lcdc & 0x01) == 0x01) {
-                            // Get the background
+                            // Get the background for the current line
                             getBackgroundForLine(y, frames[calculatingFrame], originX, originY);
                         }
                         // Check if sprites are enabled
                         if ((lcdc & 0x02) == 0x02) {
-                            // Get the sprite
+                            // Get the sprite for the current line
                             getSpritesForLine(y, frames[calculatingFrame]);
                         }
-                        
+                        // Set LCD STAT to mode 0, During H-Blank
                         Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x00, true);
+                        // Trigger H-Blank interrupt through LCD STAT if enabled
                         if ((lcdStatus & 0x08) == 0x08) {
                             Memory::interrupt(IRQ_LCD_STAT);
                         }
+                    // If we're outside viewable area, we're in VBLANK
                     } else if (y == 144) {
+                        // Set LCD STAT to mode 1, VBlank
                         Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
+                        // Trigger a VBLANK interrupt
                         Memory::interrupt(IRQ_VBLANK);
 
+                        // Map colors for the frame
                         mapColorsForFrame(frames[calculatingFrame]);
 
+                        // Swap the sending and calculating frame
                         sendingFrame = calculatingFrame;
                         calculatingFrame = !calculatingFrame;
-
+                        // Write the sending frame to the screen
                         ft81x.writeGRAM(0, 2 * 160 * 144, (uint8_t *)frames[sendingFrame]);
                     }
                 } else {
+                    // If LCD is not enabled, always set LCD STAT to mode 1, Vertical Blanking
                     Memory::writeByteInternal(MEM_LCD_STATUS, (lcdStatus & 0xFC) | 0x01, true);
                 }
                 break;
