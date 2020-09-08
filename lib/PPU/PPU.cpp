@@ -40,9 +40,15 @@
 
 // PPU TODOs:
 //  Make sure all bits in LCDC are being acted upon
-//      Background and sprite enable are being checked
-//  Make sure all bits in LCD STAT are being acted upon
-//  Look in to how "windows" work, implement that behavior (Use WY, WX)
+//      DONE Bit 7: LCD Display Enable
+//      Bit 6: Window tile map display select
+//      Bit 5: Window display enable
+//      Bit 4: BG & Window tile data select
+//      DONE Bit 3: BG Tile Map Display Select
+//      Bit 2: Sprite size
+//      DONE Bit 1: Sprite display enable
+//      Bit 0: BG/Window Display/Priority
+//  Look in to how windows work, implement that behavior
 //  Implement Background and sprite (OPB0, OBP1) color palettes 
 
 #include "PPU.h"
@@ -65,22 +71,47 @@ uint8_t PPU::originX = 0, PPU::originY = 0, PPU::lcdc = 0, PPU::lcdStatus = 0;
 
 void PPU::getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t originX, const uint8_t originY) {
     memset(frame + y * 160, 0x33, sizeof(uint16_t) * 160);
+    uint8_t lcdc = Memory::readByte(MEM_LCDC);
     uint8_t tileIndex, tileLineU, tileLineL;
+    int8_t signedTileIndex;
 
     uint8_t tilePosY = floor(y / 8) * 8;
     uint8_t tileLineY = y - tilePosY;
+
     // Check to see which Background Tile Map is selected
     uint16_t bgTileMap = MEM_VRAM_MAP1;
     // Read bit 3 of LCDC to get the Background Tile Map
-    if(Memory::readByte(MEM_LCDC & 0x08) == 0x08){
+    if((lcdc & 0x08) == 0x08){
         // If it's set, use the second tilemap
         bgTileMap = MEM_VRAM_MAP2;
     }
+
+    // Check to see which addressing method is being used for VRAM
+    uint16_t baseTilePtr = MEM_VRAM_TILES_B2;
+    bool convertTileIndex = true;
+    // If LCDC bit 4 is set, use VRAM Tiles Block0 as a base pointer
+    // for the tiles and access them with an unsigned index (0 - 255)
+    // Otherwise, use VRAM Tiles Block1 as a base pointer for the 
+    // tiles and access them with a signed index (-128 to 127)
+    if((lcdc & 0x10) == 0x10){
+        baseTilePtr = MEM_VRAM_TILES;
+        convertTileIndex = false;
+    }
+
     for (uint8_t i = 0; i < 20; i++) {
         tileIndex = Memory::readByte(bgTileMap + i + 32 * (tilePosY / 8));
-        tileLineL = Memory::readByte(MEM_VRAM_TILES + tileIndex * 16 + tileLineY * 2);
-        tileLineU = Memory::readByte(MEM_VRAM_TILES + tileIndex * 16 + tileLineY * 2 + 1);
-
+        // Check to see if the tile index needs to be converted to a signed number
+        if(convertTileIndex){
+            // Convert the tile index and use it
+            signedTileIndex = (int8_t)tileIndex;
+            tileLineL = Memory::readByte(baseTilePtr + signedTileIndex * 16 + tileLineY * 2);
+            tileLineU = Memory::readByte(baseTilePtr + signedTileIndex * 16 + tileLineY * 2 + 1);
+        }
+        else{
+            // Use the tile index as an unsigned number
+            tileLineL = Memory::readByte(baseTilePtr + tileIndex * 16 + tileLineY * 2);
+            tileLineU = Memory::readByte(baseTilePtr + tileIndex * 16 + tileLineY * 2 + 1);
+        }
         for (int8_t c = 0; c < 8; c++) {
             frame[y * 160 + i * 8 + c] = (((tileLineU >> (7 - c)) << 1) & 0x2) | ((tileLineL >> (7 - c)) & 0x1);
         }
