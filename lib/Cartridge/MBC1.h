@@ -17,7 +17,7 @@
  **/
 #pragma once
 
-#include <sys/_stdint.h>
+#include <Arduino.h>
 
 #include "ACartridge.h"
 
