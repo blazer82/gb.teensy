@@ -1,6 +1,6 @@
 /**
  * gb.teensy Emulation Software
- * Copyright (C) 2020  Raphael Stäbler
+ * Copyright (C) 2020  Raphael Stäbler, Grant Haack
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ class PPU {
 
     static void getBackgroundForLine(const uint8_t y, uint16_t *frame, const uint8_t originX, const uint8_t originY);
     static void getSpritesForLine(const uint8_t y, uint16_t *frame);
+    static void getWindowForLine(const uint8_t y, uint16_t *frame);
     static void mapColorsForFrame(uint16_t *frame);
 
    private:

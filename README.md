@@ -8,6 +8,10 @@ This is a work-in-progress Gameboy emulator for the Teensy platform.
 
 This project depends on the [FT81x Arduino Driver](https://github.com/blazer82/FT81x_Arduino_Driver).
 
-You can [read more about the project on my blog](https://medium.com/@raphaelstaebler/building-a-gameboy-from-scratch-part-1-51d05496783e).
+More information on how to set up and wire up your own breadboard Gameboy will follow here.
+
+## Credits
+
+Substantial contributions have been made by [@granthaack](https://github.com/granthaack)
 
 [build-badge]: https://github.com/blazer82/gb.teensy/workflows/build/badge.svg

@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <sys/_stdint.h>
+#include <Arduino.h>
 
 class CPU {
    public:

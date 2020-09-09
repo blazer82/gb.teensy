@@ -396,6 +396,14 @@ void CPU::cpuStep() {
             cyclesDelta = 1;
             break;
 
+        // STOP
+        // Halt the CPU until button pressed
+        // TODO: implement correctly
+        case 0x10:
+            readOp();
+            cyclesDelta = 1;
+            break;
+
         // HALT
         // Halt the CPU
         case 0x76:
