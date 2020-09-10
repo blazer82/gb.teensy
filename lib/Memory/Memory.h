@@ -210,14 +210,14 @@
 // Interrupts Enable Register (IE)
 #define MEM_INT_EN_REG 0xFFFF
 
-/*      IRQ Bits        */
+// IRQ Bits
 #define IRQ_VBLANK   0x0001
 #define IRQ_LCD_STAT 0x0002
 #define IRQ_TIMER    0x0004
 #define IRQ_SERIAL   0x0008
 #define IRQ_JOYPAD   0x0010
 
-/*      Jump Vectors    */
+// Jump Vectors
 #define PC_START    0x0100
 #define PC_VBLANK   0x0040
 #define PC_LCD_STAT 0x0048
@@ -225,6 +225,16 @@
 #define PC_SERIAL   0x0058
 #define PC_JOYPAD   0x0060
 
+// Serial Data Transfer
+// SB: Before a transfer, it holds the next byte that will go out.
+// SC:
+//   Bit 7 - Transfer Start Flag (0=No transfer is in progress or requested, 1=Transfer in progress, or requested)
+//   Bit 1 - Clock Speed (0=Normal, 1=Fast) ** CGB Mode Only **
+//   Bit 0 - Shift Clock (0=External Clock, 1=Internal Clock)
+#define MEM_SERIAL_SB 0xFF01
+#define MEM_SERIAL_SC 0xFF02
+
+// Sound
 #define MEM_SOUND_NR10 0xFF10
 #define MEM_SOUND_NR11 0xFF11
 #define MEM_SOUND_NR12 0xFF12

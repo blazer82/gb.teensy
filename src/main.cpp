@@ -24,6 +24,7 @@
 #include <Joypad.h>
 #include <Memory.h>
 #include <PPU.h>
+#include <SerialDataTransfer.h>
 
 void waitForKeyPress();
 
@@ -65,6 +66,7 @@ void loop() {
         CPU::cpuStep();
         PPU::ppuStep(ft81x);
         APU::apuStep();
+        SerialDataTransfer::serialStep();
         Joypad::joypadStep();
 
         if ((CPU::totalCycles % 1000000) == 0) {
