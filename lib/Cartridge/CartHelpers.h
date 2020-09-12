@@ -15,6 +15,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
+#pragma once
+
 #include <Arduino.h>
 
 // Defines I made to differentiate memory bank controllers
@@ -45,6 +47,7 @@
 
 uint8_t lookupMbcType(uint8_t code);
 uint8_t lookupMbcTypeFromCart(const char* romFile);
+uint8_t lookupMbcTypeFromCart(const uint8_t* data);
 uint16_t lookupRamBankSize(uint8_t code);
 uint32_t lookupRomSize(uint8_t code);
 uint32_t lookupRamSize(uint8_t code);

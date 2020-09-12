@@ -41,6 +41,19 @@ uint8_t Cartridge::begin(const char* romFile) {
     return 0;
 }
 
+uint8_t Cartridge::begin(const uint8_t* data) {
+    uint8_t mbcType = lookupMbcTypeFromCart(data);
+    if (mbcType == USES_NOMBC) {
+        cart = new NoMBC(data);
+    } else if (mbcType == USES_MBC1) {
+        cart = new MBC1(data);
+    } else {
+        Serial.printf("MBC type 0x%x is currently not supported\n");
+        return 1;
+    }
+    return 0;
+}
+
 void Cartridge::writeByte(const uint16_t addr, const uint8_t data) { cart->writeByte(addr, data); }
 uint8_t Cartridge::readByte(const uint16_t addr) { return cart->readByte(addr); }
 
