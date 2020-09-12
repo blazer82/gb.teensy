@@ -1,6 +1,7 @@
 # Teensy Gameboy
 
 [![build-badge]](https://github.com/blazer82/gb.teensy/actions?workflow=build)
+[![cpu-instrs-badge]](https://github.com/blazer82/gb.teensy/actions?workflow=cpu_instrs)
 
 This is a work-in-progress Gameboy emulator for the Teensy platform. It requires some custom hardware and wiring in order to work properly.
 
@@ -59,3 +60,4 @@ Any contribution is welcome! Please have a look at open issues and pull requests
 Substantial contributions have been made by [@granthaack](https://github.com/granthaack)
 
 [build-badge]: https://github.com/blazer82/gb.teensy/workflows/build/badge.svg
+[cpu-instrs-badge]: https://github.com/blazer82/gb.teensy/workflows/cpu_instrs/badge.svg

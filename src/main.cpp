@@ -110,7 +110,7 @@ void waitForKeyPress() {
 // > .pio/build/native/program 0 70000000
 //
 // The commands above will run the ROM data at ROM::getRom(0) for 70000000 cycles.
-// All the Serial output is printed to to stdout.
+// All the Serial output is printed to stdout.
 
 #include <Arduino.h>
 #include <CPU.h>
@@ -126,7 +126,7 @@ FT81x ft81x = FT81x(10, 9, 8);
 
 int main(int argc, char **argv) {
     if (argc != 3) {
-        printf("Invalid argument count %i instead of 2.\n", argc);
+        printf("Invalid argument count %i instead of 3.\n", argc);
         printf("Usage: program [rom index] [cycle count]\n");
         return 1;
     }
