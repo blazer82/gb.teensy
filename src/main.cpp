@@ -16,6 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
+#ifndef PLATFORM_NATIVE
+
+// This is the main entry point for the Teensy microcontroller.
+// Compile and upload to the Teensy development board in order to run the emulator.
+
 #include <APU.h>
 #include <Arduino.h>
 #include <CPU.h>
@@ -93,3 +98,53 @@ void waitForKeyPress() {
         Serial.read();
     }
 }
+
+#else
+
+// The code down here is for automated runs of ROMs on a host computer (e.g. Linux)
+// It depends on some mocked Arduino libraries currently placed inside the test directory
+// as well as ROM data, also placed inside the test directory.
+//
+// Example usage:
+// > pio run -e native
+// > .pio/build/native/program 0 70000000
+//
+// The commands above will run the ROM data at ROM::getRom(0) for 70000000 cycles.
+// All the Serial output is printed to to stdout.
+
+#include <Arduino.h>
+#include <CPU.h>
+#include <Memory.h>
+#include <PPU.h>
+#include <SD.h>
+#include <SerialDataTransfer.h>
+#include <rom.h>
+
+SDClass SD;
+StdioSerial Serial;
+FT81x ft81x = FT81x(10, 9, 8);
+
+int main(int argc, char **argv) {
+    if (argc != 3) {
+        printf("Invalid argument count %i instead of 2.\n", argc);
+        printf("Usage: program [rom index] [cycle count]\n");
+        return 1;
+    }
+
+    const unsigned int romIndex = atoi(argv[1]);
+    const unsigned long cycleCount = atol(argv[2]);
+
+    Cartridge::begin(ROM::getRom(romIndex));
+    Memory::initMemory();
+    CPU::cpuEnabled = 1;
+
+    while (CPU::totalCycles < cycleCount) {
+        CPU::cpuStep();
+        PPU::ppuStep(ft81x);
+        SerialDataTransfer::serialStep();
+    }
+
+    return 0;
+}
+
+#endif
