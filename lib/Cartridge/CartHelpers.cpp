@@ -138,6 +138,8 @@ uint8_t lookupMbcTypeFromCart(const char* romFile) {
     return ret;
 }
 
+uint8_t lookupMbcTypeFromCart(const uint8_t* data) { return data[CART_CODE]; }
+
 uint16_t lookupRamBankSize(uint8_t code) {
     switch (code) {
         case 0x0:

@@ -17,8 +17,6 @@
  **/
 #include "APU.h"
 
-#include <Arduino.h>
-
 #include "Memory.h"
 
 IntervalTimer APU::squareTimer[];

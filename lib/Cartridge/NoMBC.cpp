@@ -47,6 +47,27 @@ NoMBC::NoMBC(const char *romFile) : ACartridge(romFile) {
     }
 }
 
+NoMBC::NoMBC(const uint8_t *data) : ACartridge(data) {
+    // Allocate space for the ROM, always 2 banks
+    rom = (uint8_t *)malloc(ROM_BANK_SIZE * 2 * sizeof(uint8_t));
+
+    // Write the ROM data to memory
+    // This is currently intended to be used with automated tests
+    // TODO: Maybe find a solution without memcpy
+    Serial.println("Loading ROM into memory...");
+    memcpy(rom, data, ROM_BANK_SIZE * 2 * sizeof(uint8_t));
+    Serial.println();
+    Serial.println("ROM Loaded!");
+
+    // Allocate space for the RAM, if any
+    if (ramSize != 0x0) {
+        Serial.println("Initializing RAM...");
+        ram = (uint8_t *)malloc(ramSize * sizeof(uint8_t));
+        memset(ram, 0x0, ramSize);
+        Serial.println("RAM Initialized!");
+    }
+}
+
 NoMBC::~NoMBC() { Serial.println("Deleting NoMBC"); }
 
 uint8_t NoMBC::readByte(uint16_t addr) {

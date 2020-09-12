@@ -16,6 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
+#ifndef PLATFORM_NATIVE
+
+// This is the main entry point for the Teensy microcontroller.
+// Compile and upload to the Teensy development board in order to run the emulator.
+
 #include <APU.h>
 #include <Arduino.h>
 #include <CPU.h>
@@ -24,9 +29,9 @@
 #include <Joypad.h>
 #include <Memory.h>
 #include <PPU.h>
+#include <SerialDataTransfer.h>
 
 void waitForKeyPress();
-void printDiagnostics();
 
 FT81x ft81x = FT81x(10, 9, 8);
 
@@ -41,8 +46,6 @@ void setup() {
 
     Serial.println("Enable display");
     ft81x.begin();
-
-    printDiagnostics();
 
     Serial.printf("\nStart Gameboy...\n");
 
@@ -70,6 +73,7 @@ void loop() {
         CPU::cpuStep();
         PPU::ppuStep(ft81x);
         APU::apuStep();
+        SerialDataTransfer::serialStep();
         Joypad::joypadStep();
 
         if ((CPU::totalCycles % 1000000) == 0) {
@@ -97,61 +101,52 @@ void waitForKeyPress() {
     }
 }
 
-void printDiagnostics() {
-    Serial.print("SPI clock set to: ");
-    Serial.println(FT81x_SPI_CLOCK_SPEED);
+#else
 
-    Serial.println("");
+// The code down here is for automated runs of ROMs on a host computer (e.g. Linux)
+// It depends on some mocked Arduino libraries currently placed inside the test directory
+// as well as ROM data, also placed inside the test directory.
+//
+// Example usage:
+// > pio run -e native
+// > .pio/build/native/program 0 70000000
+//
+// The commands above will run the ROM data at ROM::getRom(0) for 70000000 cycles.
+// All the Serial output is printed to stdout.
 
-    Serial.println("Read chip ID...");
+#include <Arduino.h>
+#include <CPU.h>
+#include <Memory.h>
+#include <PPU.h>
+#include <SD.h>
+#include <SerialDataTransfer.h>
+#include <rom.h>
 
-    const uint32_t chipID = ft81x.read32(0x0C0000);
+SDClass SD;
+StdioSerial Serial;
+FT81x ft81x = FT81x(10, 9, 8);
 
-    Serial.print("0x0C0000: ");
-    Serial.print(chipID & 0xFF, HEX);
-    Serial.println(" (supposed to be 0x8)");
+int main(int argc, char **argv) {
+    if (argc != 3) {
+        printf("Invalid argument count %i instead of 3.\n", argc);
+        printf("Usage: program [rom index] [cycle count]\n");
+        return 1;
+    }
 
-    Serial.print("0x0C0001: ");
-    Serial.print((chipID >> 8) & 0xFF, HEX);
-    Serial.println(" (supposed to be 0x12 or 0x13)");
+    const unsigned int romIndex = atoi(argv[1]);
+    const unsigned long cycleCount = atol(argv[2]);
 
-    Serial.print("0x0C0002: ");
-    Serial.print((chipID >> 16) & 0xFF, HEX);
-    Serial.println(" (supposed to be 0x1)");
+    Cartridge::begin(ROM::getRom(romIndex));
+    Memory::initMemory();
+    CPU::cpuEnabled = 1;
 
-    Serial.print("0x0C0003: ");
-    Serial.print((chipID >> 24) & 0xFF, HEX);
-    Serial.println(" (supposed to be 0x0)");
+    while (CPU::totalCycles < cycleCount) {
+        CPU::cpuStep();
+        PPU::ppuStep(ft81x);
+        SerialDataTransfer::serialStep();
+    }
 
-    Serial.println("");
-
-    Serial.println("Read FT81x configuration...");
-
-    Serial.print("REG_ID ");
-    Serial.print(ft81x.read8(FT81x_REG_ID), HEX);
-    Serial.println(" (supposed to be 0x7C)");
-
-    Serial.print("REG_HCYCLE ");
-    Serial.print(ft81x.read16(FT81x_REG_HCYCLE));
-    Serial.println(" (supposed to be 518)");
-
-    Serial.print("REG_HSIZE ");
-    Serial.print(ft81x.read16(FT81x_REG_HSIZE));
-    Serial.println(" (supposed to be 480)");
-
-    Serial.print("REG_VCYCLE ");
-    Serial.print(ft81x.read16(FT81x_REG_VCYCLE));
-    Serial.println(" (supposed to be 500)");
-
-    Serial.print("REG_VSIZE ");
-    Serial.print(ft81x.read16(FT81x_REG_VSIZE));
-    Serial.println(" (supposed to be 480)");
-
-    Serial.println("");
-
-    Serial.println("Read display parameters...");
-
-    Serial.print("Power mode: ");
-    Serial.print(ft81x.queryDisplay(ST7701_RDDPM), HEX);
-    Serial.println(" (supposed to be 0x9C)");
+    return 0;
 }
+
+#endif
