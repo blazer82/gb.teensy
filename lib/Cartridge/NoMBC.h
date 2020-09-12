@@ -24,6 +24,7 @@
 class NoMBC : public ACartridge {
    public:
     NoMBC(const char* romFile);
+    NoMBC(const uint8_t* data);
     ~NoMBC();
     uint8_t readByte(uint16_t addr) override;
     void writeByte(uint16_t addr, uint8_t data) override;

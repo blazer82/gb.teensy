@@ -47,6 +47,7 @@
 
 uint8_t lookupMbcType(uint8_t code);
 uint8_t lookupMbcTypeFromCart(const char* romFile);
+uint8_t lookupMbcTypeFromCart(const uint8_t* data);
 uint16_t lookupRamBankSize(uint8_t code);
 uint32_t lookupRomSize(uint8_t code);
 uint32_t lookupRamSize(uint8_t code);

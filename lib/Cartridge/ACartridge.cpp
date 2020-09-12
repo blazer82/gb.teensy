@@ -72,6 +72,44 @@ ACartridge::ACartridge(const char* romFile) {
     }
 }
 
+ACartridge::ACartridge(const uint8_t* data) {
+    // Get the cartridge code
+    cartCode = data[CART_CODE];
+    cartType = lookupCartType(cartCode);
+
+    // Get the amount of ROM in the cart
+    romCode = data[ROM_CODE];
+    romBankCount = lookupRomBanks(romCode);
+    romSize = lookupRomSize(romSize);
+
+    // Get the amount of RAM in the car
+    ramCode = data[RAM_CODE];
+    ramBankCount = lookupRamBanks(ramCode);
+    ramBankSize = lookupRamBankSize(ramCode);
+    ramSize = lookupRamSize(ramCode);
+
+    // Get the name of the cart
+    for (uint8_t i = 0; i < 16; i++) {
+        name[i] = data[CART_NAME + i];
+    }
+
+    Serial.println("Cartridge Info:");
+    Serial.println("----------");
+    Serial.printf("Game Name: %s\n", name);
+    Serial.printf("\tCart Code: 0x%x\n", cartCode);
+    Serial.printf("\tCart Type: %s\n", cartType);
+    Serial.printf("\tMemory Bank Controller: %s\n", lookupMBCTypeString(cartCode));
+    Serial.println("ROM Info:");
+    Serial.printf("\tROM Code: 0x%x\n", romCode);
+    Serial.printf("\tROM Banks: %i\n", romBankCount);
+    Serial.printf("\tROM Size: 0x%x\n", romSize);
+    Serial.println("RAM Info:");
+    Serial.printf("\tRAM Code: 0x%x\n", ramCode);
+    Serial.printf("\tRAM Banks: %i\n", ramBankCount);
+    Serial.printf("\tRAM Size: 0x%x\n", ramSize);
+    Serial.printf("\tRAM Bank Size: 0x%x\n", ramBankSize);
+}
+
 ACartridge::~ACartridge() { Serial.println("Deleting Cartridge"); }
 
 uint8_t ACartridge::getCartCode() { return cartCode; }

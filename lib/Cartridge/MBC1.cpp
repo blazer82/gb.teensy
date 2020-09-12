@@ -55,6 +55,36 @@ MBC1::MBC1(const char *romFile) : ACartridge(romFile) {
     }
 }
 
+MBC1::MBC1(const uint8_t *data) : ACartridge(data) {
+    // Initialize the control registers
+    ramEnable = 0x0;
+    primaryBankBits = 0x1;  // Defaults to bank 1 on PoR
+    secondaryBankBits = 0x0;
+    bankModeSelect = 0x0;
+
+    // Allocate memory for ROM banks
+    romBanks = (uint8_t **)malloc(romBankCount * sizeof(uint8_t *));
+    for (uint8_t i = 0; i < romBankCount + 1; i++) {
+        romBanks[i] = (uint8_t *)malloc(ROM_BANK_SIZE * sizeof(uint8_t));
+    }
+
+    // Write the ROM data to memory
+    // This is currently intended to be used with automated tests
+    // TODO: Maybe find a solution without memcpy
+    Serial.println("Loading ROM into memory...");
+    for (uint8_t i = 0; i < romBankCount + 1; i++) {
+        memcpy(romBanks[i], data + ROM_BANK_SIZE * i, ROM_BANK_SIZE * sizeof(uint8_t));
+    }
+    Serial.println();
+    Serial.println("ROM Loaded!");
+
+    // Allocate memory for the RAM banks
+    ramBanks = (uint8_t **)malloc(ramBankCount * sizeof(uint8_t *));
+    for (uint8_t i = 0; i < ramBankCount; i++) {
+        ramBanks[i] = (uint8_t *)malloc(ramBankSize * sizeof(uint8_t));
+    }
+}
+
 MBC1::~MBC1() { Serial.println("Deleting MBC1"); }
 
 uint8_t MBC1::readByte(uint16_t addr) {
