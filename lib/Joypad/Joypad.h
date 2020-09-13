@@ -21,24 +21,14 @@
 
 #include <Arduino.h>
 
-// I fried my teensy so I need to remap the buttons
-#define JOYPAD_START  32
-#define JOYPAD_SELECT 31
-#define JOYPAD_LEFT   30
-#define JOYPAD_RIGHT  29
-#define JOYPAD_UP     28
-#define JOYPAD_DOWN   27
-#define JOYPAD_B      26
-#define JOYPAD_A      25
-
-//#define JOYPAD_START  16
-//#define JOYPAD_SELECT 17
-//#define JOYPAD_LEFT   18
-//#define JOYPAD_RIGHT  19
-//#define JOYPAD_UP     20
-//#define JOYPAD_DOWN   21
-//#define JOYPAD_B      22
-//#define JOYPAD_A      23
+#define JOYPAD_START  16
+#define JOYPAD_SELECT 17
+#define JOYPAD_LEFT   18
+#define JOYPAD_RIGHT  19
+#define JOYPAD_UP     20
+#define JOYPAD_DOWN   21
+#define JOYPAD_B      22
+#define JOYPAD_A      23
 
 typedef union {
     struct {
