@@ -744,13 +744,13 @@ void CPU::cpuStep() {
         // LD A,(C)
         case 0xF2:
             AF = LD_Nn_n(AF, Memory::readByte(BC | 0xFF00));
-            cyclesDelta = 8;
+            cyclesDelta = 2;
             break;
 
         // LD (C),A
         case 0xE2:
             Memory::writeByte(BC | 0xFF00, AF >> 8);
-            cyclesDelta = 8;
+            cyclesDelta = 2;
             break;
 
         // LDH (n),A
@@ -1887,13 +1887,13 @@ void CPU::cpuStep() {
                     c = BC & 0x01;
                     BC = LD_nN_nN(BC, (BC & 0x00FF) >> 1);
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x3A:
                     c = (DE >> 8) & 0x01;
                     DE = LD_Nn_Nn(DE, DE >> 1);
                     AF = LD_nN_n(AF, ZERO_S(DE & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x3B:
                     c = DE & 0x01;
@@ -2791,7 +2791,7 @@ void CPU::cpuStep() {
         // JP nn
         case 0xC3:
             PC = readNn();
-            cyclesDelta = 3;
+            cyclesDelta = 4;
             break;
 
         // JP cc,nn
@@ -2845,7 +2845,7 @@ void CPU::cpuStep() {
         // JR n
         case 0x18:
             PC += (int8_t)readOp();
-            cyclesDelta = 2;
+            cyclesDelta = 3;
             break;
 
         // JR cc,n
@@ -2948,48 +2948,48 @@ void CPU::cpuStep() {
         case 0xC7:
             pushStack(PC);
             PC = 0x00;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xCF:
             pushStack(PC);
             PC = 0x08;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xD7:
             pushStack(PC);
             PC = 0x10;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xDF:
             pushStack(PC);
             PC = 0x18;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xE7:
             pushStack(PC);
             PC = 0x20;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xEF:
             pushStack(PC);
             PC = 0x28;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xF7:
             pushStack(PC);
             PC = 0x30;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xFF:
             pushStack(PC);
             PC = 0x38;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
 
         // RET
         case 0xC9:
             PC = popStack();
-            cyclesDelta = 2;
+            cyclesDelta = 4;
             break;
 
         // RET cc
@@ -3034,7 +3034,7 @@ void CPU::cpuStep() {
         case 0xD9:
             PC = popStack();
             enableIRQ = 2;
-            cyclesDelta = 2;
+            cyclesDelta = 4;
             break;
 
         default:
