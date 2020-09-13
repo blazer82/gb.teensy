@@ -49,8 +49,8 @@ void setup() {
 
     Serial.printf("\nStart Gameboy...\n");
 
-    Cartridge::begin("itiming.gb");
-    //Cartridge::begin("test.gb");
+    //Cartridge::begin("itiming.gb");
+    Cartridge::begin("test.gb");
     Cartridge::getGameName(title);
 
     Memory::initMemory();

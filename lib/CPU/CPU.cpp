@@ -276,6 +276,12 @@ void CPU::cpuStep() {
 
     // Update timer
     // Check to see if timer is enabled
+    // TODO: Wierd timer behavior. Might have to rewrite how the TIMA, TAC, and DIV work
+    // - If DIV is cleared when the timer is enabled and DIV is
+    // halfway to incrementing TIMA, then TIMA will be incremented
+    // - If the TAC timer enable bit is cleared in when DIV is halfway to
+    // incrementing TIMA, then TIMA will be incremented
+    // - When TAC input clock select is change
     if ((Memory::readByte(MEM_TIMER_CONTROL) & 0x04)) {
         // Check the current TAC Input Clock Select field
         switch (Memory::readByte(MEM_TIMER_CONTROL) & 0x03) {
@@ -2889,7 +2895,7 @@ void CPU::cpuStep() {
             nn = readNn();
             pushStack(PC);
             PC = nn;
-            cyclesDelta = 3;
+            cyclesDelta = 6;
             break;
 
         // CALL cc,nn
