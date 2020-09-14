@@ -19,6 +19,9 @@
 #pragma once
 
 #include <Arduino.h>
+#include <TeensyTimerTool.h>
+
+using namespace TeensyTimerTool;
 
 #define AUDIO_OUT_SQUARE1 7
 #define AUDIO_OUT_SQUARE2 6
@@ -37,9 +40,9 @@ class APU {
     static void loadLength4();
 
    protected:
-    static IntervalTimer squareTimer[2];
-    static IntervalTimer effectTimer;
-    static IntervalTimer noiseTimer;
+    static PeriodicTimer squareTimer[2];
+    static PeriodicTimer effectTimer;
+    static PeriodicTimer noiseTimer;
 
     const static uint8_t duty[4];
     const static uint8_t divisor[8];
