@@ -19,10 +19,10 @@
 #include "CPU.h"
 
 #include <Arduino.h>
+#include <Timer.h>
 #include <time.h>
 
 #include "Memory.h"
-#include <Timer.h>
 
 /**
  * Debuging settings
@@ -275,7 +275,7 @@ void CPU::cpuStep() {
 #endif
 
     // Update timer
-    for(uint8_t i = 0; i < cyclesDelta; i++){
+    for (uint8_t i = 0; i < cyclesDelta; i++) {
         Timer::timerStep();
     }
 
@@ -327,7 +327,6 @@ void CPU::cpuStep() {
 #endif
 
     op = readOp();
-
 
 #ifdef DEBUG_AFTER_CYCLE
     if (debugAfterCycle >= 0 && totalCycles >= debugAfterCycle) {
@@ -2741,8 +2740,7 @@ void CPU::cpuStep() {
             if (ZERO_F(AF) == 0) {
                 PC = nn;
                 cyclesDelta = 4;
-            }
-            else{
+            } else {
                 cyclesDelta = 3;
             }
             break;
@@ -2751,8 +2749,7 @@ void CPU::cpuStep() {
             if (ZERO_F(AF) == ZERO_V) {
                 PC = nn;
                 cyclesDelta = 4;
-            }
-            else{
+            } else {
                 cyclesDelta = 3;
             }
             break;
@@ -2761,8 +2758,7 @@ void CPU::cpuStep() {
             if (CARRY_F(AF) == 0) {
                 PC = nn;
                 cyclesDelta = 4;
-            }
-            else{
+            } else {
                 cyclesDelta = 3;
             }
             break;
@@ -2771,8 +2767,7 @@ void CPU::cpuStep() {
             if (CARRY_F(AF) == CARRY_V) {
                 PC = nn;
                 cyclesDelta = 4;
-            }
-            else{
+            } else {
                 cyclesDelta = 3;
             }
             break;
@@ -2795,8 +2790,7 @@ void CPU::cpuStep() {
             if (ZERO_F(AF) == 0) {
                 PC += (int8_t)n;
                 cyclesDelta = 3;
-            }
-            else{
+            } else {
                 cyclesDelta = 2;
             }
             break;
@@ -2805,8 +2799,7 @@ void CPU::cpuStep() {
             if (ZERO_F(AF) == ZERO_V) {
                 PC += (int8_t)n;
                 cyclesDelta = 3;
-            }
-            else{
+            } else {
                 cyclesDelta = 2;
             }
             break;
@@ -2815,8 +2808,7 @@ void CPU::cpuStep() {
             if (CARRY_F(AF) == 0) {
                 PC += (int8_t)n;
                 cyclesDelta = 3;
-            }
-            else{
+            } else {
                 cyclesDelta = 2;
             }
             break;
@@ -2825,8 +2817,7 @@ void CPU::cpuStep() {
             if (CARRY_F(AF) == CARRY_V) {
                 PC += (int8_t)n;
                 cyclesDelta = 3;
-            }
-            else{
+            } else {
                 cyclesDelta = 2;
             }
             break;
@@ -2846,8 +2837,7 @@ void CPU::cpuStep() {
                 pushStack(PC);
                 PC = nn;
                 cyclesDelta = 6;
-            }
-            else{
+            } else {
                 cyclesDelta = 3;
             }
             break;
@@ -2857,8 +2847,7 @@ void CPU::cpuStep() {
                 pushStack(PC);
                 PC = nn;
                 cyclesDelta = 6;
-            }
-            else{
+            } else {
                 cyclesDelta = 3;
             }
             break;
@@ -2868,8 +2857,7 @@ void CPU::cpuStep() {
                 pushStack(PC);
                 PC = nn;
                 cyclesDelta = 6;
-            }
-            else{
+            } else {
                 cyclesDelta = 3;
             }
             break;
@@ -2879,8 +2867,7 @@ void CPU::cpuStep() {
                 pushStack(PC);
                 PC = nn;
                 cyclesDelta = 6;
-            }
-            else{
+            } else {
                 cyclesDelta = 3;
             }
             break;
@@ -2938,8 +2925,7 @@ void CPU::cpuStep() {
             if (ZERO_F(AF) == 0) {
                 PC = popStack();
                 cyclesDelta = 5;
-            }
-            else{
+            } else {
                 cyclesDelta = 2;
             }
             break;
@@ -2947,8 +2933,7 @@ void CPU::cpuStep() {
             if (ZERO_F(AF) == ZERO_V) {
                 PC = popStack();
                 cyclesDelta = 5;
-            }
-            else{
+            } else {
                 cyclesDelta = 2;
             }
             break;
@@ -2956,8 +2941,7 @@ void CPU::cpuStep() {
             if (CARRY_F(AF) == 0) {
                 PC = popStack();
                 cyclesDelta = 5;
-            }
-            else{
+            } else {
                 cyclesDelta = 2;
             }
             break;
@@ -2965,8 +2949,7 @@ void CPU::cpuStep() {
             if (CARRY_F(AF) == CARRY_V) {
                 PC = popStack();
                 cyclesDelta = 5;
-            }
-            else{
+            } else {
                 cyclesDelta = 2;
             }
             break;

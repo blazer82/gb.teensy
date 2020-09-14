@@ -20,15 +20,15 @@
 
 #include <Arduino.h>
 
-class Timer{
+class Timer {
    public:
     // Perform a single step of the timer
     static void timerStep();
 
     // Note to future Grant
-    // For this to work, these reads and writes need to happen before 
+    // For this to work, these reads and writes need to happen before
     // cpuStep
-    // Manipulating DIV 
+    // Manipulating DIV
     static uint8_t readDiv();
     static void writeDiv(uint8_t data);
 
@@ -50,13 +50,13 @@ class Timer{
     static void clearInt();
     // Set the interrupt bit
     static void setInt();
-    
+
    private:
     // So much of the timer logic is based on falling
     // edges, so we need to keep copies of the previous
     // register values to check for that
-    
-    // The divider register. Reading from 0xFF04 
+
+    // The divider register. Reading from 0xFF04
     // will get the top 8 bits of this register
     // This is the actual system internal timer too
     static uint16_t div;
@@ -78,12 +78,12 @@ class Timer{
     static bool timerInt;
 
     // There are some glitched conditions where TIMA will
-    // need to be increased on the next cycle to match the 
+    // need to be increased on the next cycle to match the
     // hardware behavior. This keeps track of that
     static bool timaGlitch;
 
     // TIMA overflow doesn't cause immediate changes, it
-    // happens one cycle (4 clocks) later. This keeps 
+    // happens one cycle (4 clocks) later. This keeps
     // track of how many cycles until overflow changes
     // need to occur. It it is -1, no overflow happened yet
     static int8_t timaOverflowCountdown;
