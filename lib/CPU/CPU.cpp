@@ -296,6 +296,7 @@ void CPU::cpuStep() {
                     pushStack(PC);
                     PC = PC_LCD_STAT;
                 } else if ((interrupt & IRQ_TIMER) == IRQ_TIMER) {
+                    Serial.println("Servicing Timer IRQ");
                     Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_TIMER));
                     pushStack(PC);
                     PC = PC_TIMER;

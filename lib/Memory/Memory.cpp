@@ -93,6 +93,8 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             if (data & IRQ_TIMER) {
                 // Send them to the timer
                 Timer::setInt();
+            } else {
+                Timer::clearInt();
             }
             // Don't store the Timer interrupt flag here. It's
             // handled by Timer
@@ -207,7 +209,7 @@ uint8_t Memory::readByte(const uint16_t location) {
         // Handle reads to IF register
         if (location == MEM_IRQ_FLAG) {
             // Get the IRQ bit for the Timer from Timer
-            return (ioreg[MEM_IRQ_FLAG - MEM_IO_REGS] & ~IRQ_TIMER) | Timer::checkInt() << 2;
+            return (ioreg[MEM_IRQ_FLAG - MEM_IO_REGS] & ~IRQ_TIMER) | (Timer::checkInt() << 2);
         }
         // Handle reads to the DIV register
         else if (location == MEM_DIVIDER) {
