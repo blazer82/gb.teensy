@@ -22,6 +22,7 @@
 #include <time.h>
 
 #include "Memory.h"
+#include <Timer.h>
 
 /**
  * Debuging settings
@@ -144,7 +145,6 @@ uint8_t CPU::timerCycles = 0, CPU::timerTotalCycles = 0xFF;
 
 uint8_t CPU::cyclesDelta = 0;
 
-// Debug variables
 #ifdef DEBUG_AFTER_CYCLE
 uint64_t debugAfterCycle = DEBUG_AFTER_CYCLE;
 #endif
@@ -275,56 +275,8 @@ void CPU::cpuStep() {
 #endif
 
     // Update timer
-    // Check to see if timer is enabled
-    // TODO: Wierd timer behavior. Might have to rewrite how the TIMA, TAC, and DIV work
-    // - If DIV is cleared when the timer is enabled and DIV is
-    // halfway to incrementing TIMA, then TIMA will be incremented
-    // - If the TAC timer enable bit is cleared in when DIV is halfway to
-    // incrementing TIMA, then TIMA will be incremented
-    // - When TAC input clock select is change
-    if ((Memory::readByte(MEM_TIMER_CONTROL) & 0x04)) {
-        // Check the current TAC Input Clock Select field
-        switch (Memory::readByte(MEM_TIMER_CONTROL) & 0x03) {
-
-            case 3:
-                timerTotalCycles = 64;
-                break;
-
-            case 2:
-                timerTotalCycles = 16;
-                break;
-
-            case 1:
-                timerTotalCycles = 4;
-                break;
-
-            default:
-                timerTotalCycles = 250;
-                break;
-        }
-
-        // Calculate the amount of cycles we need to burn, each CPU instruction needs to burn cyclesDelta cycles
-        const uint8_t newTimerCycles = timerCycles + cyclesDelta;
-        // Burn the cycles
-        while (timerCycles < newTimerCycles) {
-            timerCycles++;
-            // Check to see if TIMA should be incremented
-            // TIMA can be incremented multiple times during the execution of an instruction, so check the modulo
-            if (timerCycles % timerTotalCycles == 0) {
-                // Save TIMA to check for overflows
-                uint8_t prevTIMA = Memory::readByte(MEM_TIMA);
-                // Increment TIMA
-                Memory::writeByteInternal(MEM_TIMA, Memory::readByte(MEM_TIMA) + 1, true);
-                // Check for TIMA overflows
-                if ((Memory::readByte(MEM_TIMA) == 0) && (prevTIMA == 0xFF)) {
-                    // If TIMA overflowed, reset TIMA to TMA and request a timer interrupt
-                    Memory::writeByteInternal(MEM_TIMA, Memory::readByte(MEM_TMA), true);
-                    Memory::interrupt(IRQ_TIMER);
-                }
-            }
-        }
-
-        timerCycles %= timerTotalCycles;
+    for(uint8_t i = 0; i < cyclesDelta; i++){
+        Timer::timerStep();
     }
 
     // Check for interrupts
@@ -361,17 +313,6 @@ void CPU::cpuStep() {
             halted = 0;
         }
     }
-
-    // Update divider register
-    const uint8_t newDivider = divider + cyclesDelta;
-    while (divider < newDivider) {
-        divider++;
-        if (divider == 61) {
-            Memory::writeByteInternal(MEM_DIVIDER, Memory::readByte(MEM_DIVIDER) + 1, true);
-        }
-    }
-    divider %= 61;
-
     // Check if halted
     if (halted) {
         cyclesDelta = 1;  // In order for the timer to work properly
@@ -389,7 +330,7 @@ void CPU::cpuStep() {
 
 
 #ifdef DEBUG_AFTER_CYCLE
-    if (debugAfterCycle > 0 && totalCycles >= debugAfterCycle) {
+    if (debugAfterCycle >= 0 && totalCycles >= debugAfterCycle) {
         delay(20);
         Serial.printf("Cycle %llu: %02x at %04x - ", totalCycles, op, PC - 1);
         dumpRegister();

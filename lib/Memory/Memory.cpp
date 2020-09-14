@@ -20,6 +20,7 @@
 
 #include <Arduino.h>
 #include <string.h>
+#include <Timer.h>
 
 #include "APU.h"
 
@@ -66,17 +67,36 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
                 d++;
             }
             break;
-
-        // Handle writes to the Divider register
-        // Resides in I/O region
+        // Handle writes to the Divider (DIV) register
         case MEM_DIVIDER:
-            if (internal) {
-                ioreg[MEM_DIVIDER - MEM_IO_REGS] = data;
-            } else {
-                // Writes to the divider just clear it
-                ioreg[MEM_DIVIDER - MEM_IO_REGS] = 0x00;
-            }
+            Timer::writeDiv(data);
             break;
+
+        // Handle writes to the TIMA register
+        case MEM_TIMA:
+            Timer::writeTima(data);
+            break;
+        
+        // Handle writes to the TMA Register
+        case MEM_TMA:
+            Timer::writeTma(data);
+            break;
+
+        // Handle writes to the Timer Control (TAC) Register
+        case MEM_TIMER_CONTROL:
+            Timer::writeTac(data);
+            break;
+
+        // Handle writes to the Interrupt Flag (IF) register
+        case MEM_IRQ_FLAG:
+            // Check for timer interrupt requests
+            if (data & IRQ_TIMER){
+                // Send them to the timer
+                Timer::setInt();
+            }
+            // Don't store the Timer interrupt flag here. It's
+            // handled by Timer
+            ioreg[MEM_IRQ_FLAG - MEM_IO_REGS] = (data & ~IRQ_TIMER);
 
         // Sound length counter
         // Resides in I/O region
@@ -184,7 +204,31 @@ uint8_t Memory::readByte(const uint16_t location) {
     }
     // Handle reads from IO registers
     else if (location >= MEM_IO_REGS) {
-        return ioreg[location - MEM_IO_REGS];
+        // Handle reads to IF register
+        if(location == MEM_IRQ_FLAG){
+            // Get the IRQ bit for the Timer from Timer
+            return (ioreg[MEM_IRQ_FLAG - MEM_IO_REGS] & ~IRQ_TIMER) | Timer::checkInt() << 2;
+        }
+        // Handle reads to the DIV register
+        else if(location == MEM_DIVIDER){
+            return Timer::readDiv();
+        }
+        // Handle reads to TIMA register
+        else if(location == MEM_TIMA){
+            return Timer::readTima();
+        }
+        // Handle reads to TMA register
+        else if(location == MEM_TMA){
+            return Timer::readTma();
+        }
+        // Handle reads to TAC register
+        else if(location == MEM_TIMER_CONTROL){
+            return Timer::readTac();
+        }
+        // Handle all other IO reg locations
+        else{
+            return ioreg[location - MEM_IO_REGS];
+        }
     }
     // Handle reads from unusable memory
     // TODO: Assume reads here return 0xFF. Look this up
