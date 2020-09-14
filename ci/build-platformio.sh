@@ -25,23 +25,8 @@ echo -e "${YELLOW}INSTALLING TEENSY PLATFORM"
 echo "########################################################################";
 pio platform install "teensy"
 
-# Install dependencies
-echo -e "\n########################################################################";
-echo -e "${YELLOW}INSTALLING DEPENDENCIES"
-echo "########################################################################";
-pio lib install FT81x_Arduino_Driver
-
 echo -e "\n########################################################################";
 echo -e "${YELLOW}BUILD"
 echo "########################################################################";
-echo "[env:teensy40]" > platformio.ini
-echo "platform = teensy" >> platformio.ini
-echo "framework = arduino" >> platformio.ini
-echo "board = teensy40" >> platformio.ini
-echo "" >> platformio.ini
-echo "[env:teensy41]" >> platformio.ini
-echo "platform = teensy" >> platformio.ini
-echo "framework = arduino" >> platformio.ini
-echo "board = teensy41" >> platformio.ini
-pio run
+pio run -e teensy41
 if [ $? -ne 0 ]; then echo -e "${RED}\xe2\x9c\x96"; else echo -e "${GREEN}\xe2\x9c\x93"; fi
