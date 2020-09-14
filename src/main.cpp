@@ -42,16 +42,16 @@ void setup() {
 
     SPI.begin();
 
-    waitForKeyPress();
+    // waitForKeyPress();
 
     Serial.println("Enable display");
     ft81x.begin();
 
     Serial.printf("\nStart Gameboy...\n");
 
-    //Cartridge::begin("itiming.gb");
-    //Cartridge::begin("tim01.gb");
-    Cartridge::begin("mario.gb");
+    //Cartridge::begin("mario.gb");
+    Cartridge::begin("bootregs.gb");
+    //artridge::begin("mario.gb");
     Cartridge::getGameName(title);
 
     Memory::initMemory();
