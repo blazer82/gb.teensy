@@ -128,10 +128,12 @@ void Timer::writeTac(uint8_t data){
     // to was also 1, then TIMA will increase
 
     // Check if TAC was disabled with this write
-    if((tacPrev & 0x4) && !(tac & 0x4)){
+    if((tacPrev & 0x4) && ((tac & 0x4) == 0)){
         // Check to see if the DIV bit that TAC 
         // was pointing to was 1
-        if(div & 1 << tacDivBit[tacPrev & 3]){
+        if(
+            ((div & 1 << tacDivBit[tacPrev & 3]) == (tacDivBit[tacPrev & 3]))
+        ){
             // This causes a falling edge and will increment
             // TIMA
             timaGlitch = true;
@@ -150,10 +152,12 @@ void Timer::writeTac(uint8_t data){
     if ((tacPrev & 0x04) & (tac & 0x04)){
         // Check if TAC DIV select bits have changed
         if((tacPrev & 0x03) != (tac & 0x03)){
-            // Check to see if the previous DIV bit was a 1 and the
-            // new one is a zero
-            if((div & 1 << tacDivBit[tacPrev & 0x03]) &
-                !(div & 1 << tacDivBit[tac & 0x03])){
+            // Check to see if the previously pointed to DIV 
+            // bit was a 1 and the new one is a zero
+            if(
+                ((div & 1 << tacDivBit[tacPrev & 0x03]) == (1 << tacDivBit[tacPrev & 0x03])) &
+                ((div & 1 << tacDivBit[tac & 0x03]) == 0)
+                ){
                     // If the DIV bit being pointed to was a 1 and 
                     // now it's a 0, that's a falling edge
                     timaGlitch = true;
@@ -180,10 +184,10 @@ void Timer::timerStep(){
                 // Check to see if TIMA should be incremented normally
                 // TIMA is incremented if the current bit being pointed
                 // to by TAC transitions from 1 to 0
-                if((divPrev & 1 << tacDivBit[tac & 0x03]) &
-                    !(div & 1 << tacDivBit[tac & 0x03])){
-                    Serial.println(tima);
-                    Serial.println(timaPrev);
+                if(
+                    ((divPrev & (1 << tacDivBit[tac & 0x03])) == (1 << tacDivBit[tac & 0x03])) &
+                    ((div & (1 << tacDivBit[tac & 0x03])) == 0)
+                ){
                     timaPrev = tima;
                     tima++;
                 }
@@ -195,6 +199,7 @@ void Timer::timerStep(){
             // If it has, then overflow changes happen in 4 clocks
             timaOverflowCountdown = 4;
         }
+
         // Start counting down TIMA overflow
         if(timaOverflowCountdown != -4){
             // Check if it's time for overflow changes
