@@ -34,23 +34,27 @@ class APU {
     static void apuStep();
     static void triggerSquare1();
     static void triggerSquare2();
+    static void triggerWave();
     static void triggerNoise();
     static void loadLength1();
     static void loadLength2();
+    static void loadLength3();
     static void loadLength4();
 
    protected:
-    static PeriodicTimer squareTimer[2];
+    static PeriodicTimer frequencyTimer[3];
     static PeriodicTimer effectTimer;
     static PeriodicTimer noiseTimer;
+
+    static void (*frequencyUpdate[3])();
 
     const static uint8_t duty[4];
     const static uint8_t divisor[8];
 
     volatile static bool channelEnabled[4];
-    volatile static uint16_t currentSquareFrequency[2];
+    volatile static uint16_t currentFrequency[3];
     volatile static uint16_t currentNoiseFrequency;
-    volatile static uint8_t dutyStep[2];
+    volatile static uint8_t dutyStep[3];
     volatile static uint8_t lengthCounter[4];
     volatile static uint8_t envelopeStep[4];
     volatile static uint16_t sweepFrequency;
@@ -60,6 +64,7 @@ class APU {
 
     static void squareUpdate1();
     static void squareUpdate2();
+    static void waveUpdate();
     static void noiseUpdate();
     static void effectUpdate();
 

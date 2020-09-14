@@ -92,6 +92,18 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
                 APU::loadLength2();
             }
             break;
+        case MEM_SOUND_NR31:
+            ioreg[MEM_SOUND_NR31 - MEM_IO_REGS] = data;
+            if (!internal) {
+                APU::loadLength3();
+            }
+            break;
+        case MEM_SOUND_NR41:
+            ioreg[MEM_SOUND_NR41 - MEM_IO_REGS] = data;
+            if (!internal) {
+                APU::loadLength4();
+            }
+            break;
 
         // Sound channel enable
         // Resides in I/O region
@@ -108,6 +120,14 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             if (!internal) {
                 if (data >> 7) {
                     APU::triggerSquare2();
+                }
+            }
+            break;
+        case MEM_SOUND_NR34:
+            ioreg[MEM_SOUND_NR34 - MEM_IO_REGS] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerWave();
                 }
             }
             break;

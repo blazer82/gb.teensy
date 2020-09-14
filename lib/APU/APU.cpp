@@ -19,19 +19,21 @@
 
 #include "Memory.h"
 
-// Use 2 of the 4 available TMR4 Quad Timers (TMR1-TMR3 are used by Teensyduino)
-PeriodicTimer APU::squareTimer[] = {PeriodicTimer(TMR4), PeriodicTimer(TMR4)};
+// Use 3 of the 4 available TMR4 Quad Timers (TMR1-TMR3 are used by Teensyduino)
+PeriodicTimer APU::frequencyTimer[] = {PeriodicTimer(TMR4), PeriodicTimer(TMR4), PeriodicTimer(TMR4)};
 
 // Use the two General Purpose Timers for noise and effects
 PeriodicTimer APU::effectTimer(GPT1);
 PeriodicTimer APU::noiseTimer(GPT2);
 
+void (*APU::frequencyUpdate[])() = {APU::squareUpdate1, APU::squareUpdate2, APU::waveUpdate};
+
 const uint8_t APU::duty[] = {0x01, 0x81, 0x87, 0x7E};
 
 volatile bool APU::channelEnabled[] = {0, 0, 0, 0};
-volatile uint16_t APU::currentSquareFrequency[] = {0, 0};
+volatile uint16_t APU::currentFrequency[] = {0, 0, 0};
 volatile uint16_t APU::currentNoiseFrequency = 0;
-volatile uint8_t APU::dutyStep[] = {0, 0};
+volatile uint8_t APU::dutyStep[] = {0, 0, 0};
 volatile uint8_t APU::lengthCounter[] = {0, 0, 0, 0};
 volatile uint8_t APU::envelopeStep[] = {0, 0, 0, 0};
 volatile uint16_t APU::sweepFrequency = 0;
@@ -51,7 +53,13 @@ void APU::begin() {
     analogWriteResolution(8);
     analogWriteFrequency(AUDIO_OUT_SQUARE1, 9375000);
     analogWriteFrequency(AUDIO_OUT_SQUARE2, 9375000);
+    analogWriteFrequency(AUDIO_OUT_WAVE, 9375000);
     analogWriteFrequency(AUDIO_OUT_NOISE, 9375000);
+
+    analogWrite(AUDIO_OUT_SQUARE1, 0);
+    analogWrite(AUDIO_OUT_SQUARE2, 0);
+    analogWrite(AUDIO_OUT_WAVE, 0);
+    analogWrite(AUDIO_OUT_NOISE, 0);
 
     // Start effect timer
     APU::effectTimer.begin(APU::effectUpdate, 1000000 / 256);
@@ -63,18 +71,17 @@ void APU::apuStep() {
     if (nr52.bits.masterSwitch) {
         const nrx4_register_t nr14 = {.value = Memory::readByte(MEM_SOUND_NR14)};
         const nrx4_register_t nr24 = {.value = Memory::readByte(MEM_SOUND_NR24)};
-        const uint16_t squareFreq[] = {(uint16_t)(0x20000 / (0x800 - ((nr14.bits.frequency << 8) | Memory::readByte(MEM_SOUND_NR13)))),
-                                       (uint16_t)(0x20000 / (0x800 - ((nr24.bits.frequency << 8) | Memory::readByte(MEM_SOUND_NR23))))};
+        const nrx4_register_t nr34 = {.value = Memory::readByte(MEM_SOUND_NR34)};
+        const uint16_t frequency[] = {(uint16_t)(0x20000 / (0x800 - ((nr14.bits.frequency << 8) | Memory::readByte(MEM_SOUND_NR13)))),
+                                      (uint16_t)(0x20000 / (0x800 - ((nr24.bits.frequency << 8) | Memory::readByte(MEM_SOUND_NR23)))),
+                                      (uint16_t)(0x10000 / (0x800 - ((nr34.bits.frequency << 8) | Memory::readByte(MEM_SOUND_NR33))))};
 
-        for (uint8_t i = 0; i < 2; i++) {
-            if (APU::currentSquareFrequency[i] != squareFreq[i]) {
-                APU::currentSquareFrequency[i] = squareFreq[i];
+        for (uint8_t i = 0; i < 3; i++) {
+            if (APU::currentFrequency[i] != frequency[i]) {
+                APU::currentFrequency[i] = frequency[i];
 
-                if (squareFreq[i] == 0) {
-                    APU::squareTimer[i].stop();
-                    analogWrite(i == 0 ? AUDIO_OUT_SQUARE1 : AUDIO_OUT_SQUARE2, 0);
-                } else {
-                    APU::squareTimer[i].begin(i == 0 ? APU::squareUpdate1 : APU::squareUpdate2, 1000000 / 8 / (uint32_t)squareFreq[i]);
+                if (frequency[i] != 0) {
+                    APU::frequencyTimer[i].begin(APU::frequencyUpdate[i], 1000000 / 8 / (uint32_t)frequency[i]);
                 }
             }
         }
@@ -93,11 +100,13 @@ void APU::apuStep() {
             }
         }
     } else {
-        APU::squareTimer[0].stop();
-        APU::squareTimer[1].stop();
+        APU::frequencyTimer[0].stop();
+        APU::frequencyTimer[1].stop();
+        APU::frequencyTimer[2].stop();
         APU::noiseTimer.stop();
         analogWrite(AUDIO_OUT_SQUARE1, 0);
         analogWrite(AUDIO_OUT_SQUARE2, 0);
+        analogWrite(AUDIO_OUT_WAVE, 0);
         analogWrite(AUDIO_OUT_NOISE, 0);
     }
 }
@@ -113,7 +122,7 @@ void APU::squareUpdate1() {
         const uint8_t mixerVolume = (channelControl.bits.terminal1Volume * terminalControl.bits.square1Terminal1 +
                                      channelControl.bits.terminal2Volume * terminalControl.bits.square1Terminal2) /
                                     (terminalControl.bits.square1Terminal1 + terminalControl.bits.square1Terminal2);
-        analogWrite(AUDIO_OUT_SQUARE1, ((duty[nrx1.bits.duty] >> APU::dutyStep[0]) & 1) * envelope.bits.volume * mixerVolume);
+        analogWrite(AUDIO_OUT_SQUARE1, ((duty[nrx1.bits.duty] >> APU::dutyStep[0]) & 1) * envelope.bits.volume * mixerVolume * 2);
         APU::dutyStep[0]++;
         APU::dutyStep[0] %= 8;
     } else {
@@ -133,12 +142,35 @@ void APU::squareUpdate2() {
         const uint8_t mixerVolume = (channelControl.bits.terminal1Volume * terminalControl.bits.square2Terminal1 +
                                      channelControl.bits.terminal2Volume * terminalControl.bits.square2Terminal2) /
                                     (terminalControl.bits.square2Terminal1 + terminalControl.bits.square2Terminal2);
-        analogWrite(AUDIO_OUT_SQUARE2, ((duty[nrx1.bits.duty] >> APU::dutyStep[1]) & 1) * envelope.bits.volume * mixerVolume);
+        analogWrite(AUDIO_OUT_SQUARE2, ((duty[nrx1.bits.duty] >> APU::dutyStep[1]) & 1) * envelope.bits.volume * mixerVolume * 2);
         APU::dutyStep[1]++;
         APU::dutyStep[1] %= 8;
     } else {
         APU::channelEnabled[1] = 0;
         analogWrite(AUDIO_OUT_SQUARE2, 0);
+    }
+}
+
+void APU::waveUpdate() {
+    const bool enabled = Memory::readByte(MEM_SOUND_NR30) >> 7;
+    const nrx4_register_t nrx4 = {.value = Memory::readByte(MEM_SOUND_NR34)};
+
+    if (enabled && APU::channelEnabled[2] && (!nrx4.bits.lengthEnable || APU::lengthCounter[2] > 0)) {
+        const uint8_t volumeShift = ((Memory::readByte(MEM_SOUND_NR32) >> 5) & 0x3);
+        const uint8_t waveByte = Memory::readByte(MEM_SOUND_WAVE_START + 16 - APU::dutyStep[2] / 2);
+        const uint8_t waveNibble = (waveByte >> (1 - (APU::dutyStep[2] % 2))) & 0xF;
+
+        const nr50_register_t channelControl = {.value = Memory::readByte(MEM_SOUND_NR50)};
+        const nr51_register_t terminalControl = {.value = Memory::readByte(MEM_SOUND_NR51)};
+        const uint8_t mixerVolume = (channelControl.bits.terminal1Volume * terminalControl.bits.waveTerminal1 +
+                                     channelControl.bits.terminal2Volume * terminalControl.bits.waveTerminal2) /
+                                    (terminalControl.bits.waveTerminal1 + terminalControl.bits.waveTerminal2);
+        analogWrite(AUDIO_OUT_WAVE, (waveNibble / (1 << volumeShift) * mixerVolume));
+        APU::dutyStep[2]++;
+        APU::dutyStep[2] %= 32;
+    } else {
+        APU::channelEnabled[2] = 0;
+        analogWrite(AUDIO_OUT_WAVE, 0);
     }
 }
 
@@ -162,7 +194,7 @@ void APU::noiseUpdate() {
                                      channelControl.bits.terminal2Volume * terminalControl.bits.noiseTerminal2) /
                                     (terminalControl.bits.noiseTerminal1 + terminalControl.bits.noiseTerminal2);
 
-        analogWrite(AUDIO_OUT_NOISE, !(APU::noiseRegister & 1) * envelope.bits.volume * mixerVolume);
+        analogWrite(AUDIO_OUT_NOISE, !(APU::noiseRegister & 1) * envelope.bits.volume * mixerVolume * 2);
     } else {
         APU::channelEnabled[3] = 0;
         analogWrite(AUDIO_OUT_NOISE, 0);
@@ -185,6 +217,13 @@ void APU::effectUpdate() {
         const nrx4_register_t nrx4 = {.value = Memory::readByte(MEM_SOUND_NR24)};
         if (nrx4.bits.lengthEnable && APU::lengthCounter[1] != 0) {
             APU::lengthCounter[1]--;
+        }
+    }
+
+    {
+        const nrx4_register_t nrx4 = {.value = Memory::readByte(MEM_SOUND_NR34)};
+        if (nrx4.bits.lengthEnable && APU::lengthCounter[2] != 0) {
+            APU::lengthCounter[2]--;
         }
     }
 
@@ -283,6 +322,12 @@ void APU::triggerSquare2() {
     APU::channelEnabled[1] = 1;
 }
 
+void APU::triggerWave() {
+    APU::loadLength3();
+    APU::dutyStep[2] = 0;
+    APU::channelEnabled[2] = 1;
+}
+
 void APU::triggerNoise() {
     APU::loadLength4();
     APU::envelopeStep[3] = 0;
@@ -298,6 +343,11 @@ void APU::loadLength1() {
 void APU::loadLength2() {
     const nrx1_register_t nrx1 = {.value = Memory::readByte(MEM_SOUND_NR21)};
     APU::lengthCounter[1] = 0x40 - nrx1.bits.length;
+}
+
+void APU::loadLength3() {
+    const uint8_t length = Memory::readByte(MEM_SOUND_NR31);
+    APU::lengthCounter[2] = 0x100 - length;
 }
 
 void APU::loadLength4() {
