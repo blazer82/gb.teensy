@@ -19,12 +19,14 @@
 
 #include "Memory.h"
 
-// Use 3 of the 4 available TMR4 Quad Timers (TMR1-TMR3 are used by Teensyduino)
-PeriodicTimer APU::frequencyTimer[] = {PeriodicTimer(TMR4), PeriodicTimer(TMR4), PeriodicTimer(TMR4)};
+// Use Teensyduino's IntervalTimer for all sound channels
+// Because as of v0.2.1 using Periodic Timers with TeensyTimerTool
+// did result in audible glitches when updating the channel's frequency
+IntervalTimer APU::frequencyTimer[];
+IntervalTimer APU::noiseTimer;
 
-// Use the two General Purpose Timers for noise and effects
+// Use a General Purpose Timer effects
 PeriodicTimer APU::effectTimer(GPT1);
-PeriodicTimer APU::noiseTimer(GPT2);
 
 void (*APU::frequencyUpdate[])() = {APU::squareUpdate1, APU::squareUpdate2, APU::waveUpdate};
 
@@ -63,6 +65,10 @@ void APU::begin() {
 
     // Start effect timer
     APU::effectTimer.begin(APU::effectUpdate, 1000000 / 256);
+
+    for (uint8_t i = 0; i < 3; i++) {
+        APU::frequencyTimer[i].begin(APU::frequencyUpdate[i], 1000000);
+    }
 }
 
 void APU::apuStep() {
@@ -81,7 +87,7 @@ void APU::apuStep() {
                 APU::currentFrequency[i] = frequency[i];
 
                 if (frequency[i] != 0) {
-                    APU::frequencyTimer[i].begin(APU::frequencyUpdate[i], 1000000 / 8 / (uint32_t)frequency[i]);
+                    APU::frequencyTimer[i].update(1000000 / 8 / (uint32_t)frequency[i]);
                 }
             }
         }
@@ -93,17 +99,17 @@ void APU::apuStep() {
             APU::currentNoiseFrequency = noiseFreq;
 
             if (noiseFreq == 0) {
-                APU::noiseTimer.stop();
+                APU::noiseTimer.update(1000000);
                 analogWrite(AUDIO_OUT_NOISE, 0);
             } else {
                 APU::noiseTimer.begin(APU::noiseUpdate, 1000000 / noiseFreq);
             }
         }
     } else {
-        APU::frequencyTimer[0].stop();
-        APU::frequencyTimer[1].stop();
-        APU::frequencyTimer[2].stop();
-        APU::noiseTimer.stop();
+        APU::frequencyTimer[0].update(1000000);
+        APU::frequencyTimer[1].update(1000000);
+        APU::frequencyTimer[2].update(1000000);
+        APU::noiseTimer.update(1000000);
         analogWrite(AUDIO_OUT_SQUARE1, 0);
         analogWrite(AUDIO_OUT_SQUARE2, 0);
         analogWrite(AUDIO_OUT_WAVE, 0);

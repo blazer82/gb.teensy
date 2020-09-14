@@ -42,9 +42,9 @@ class APU {
     static void loadLength4();
 
    protected:
-    static PeriodicTimer frequencyTimer[3];
+    static IntervalTimer frequencyTimer[3];
     static PeriodicTimer effectTimer;
-    static PeriodicTimer noiseTimer;
+    static IntervalTimer noiseTimer;
 
     static void (*frequencyUpdate[3])();
 
