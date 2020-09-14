@@ -202,7 +202,7 @@ void APU::effectUpdate() {
             APU::sweepStep++;
 
             if ((APU::sweepStep % nr10.bits.time) == 0) {
-                const uint16_t newFrequency = nr10.bits.direction ? (APU::sweepFrequency << nr10.bits.shift) : (APU::sweepFrequency >> nr10.bits.shift);
+                const uint16_t newFrequency = APU::sweepFrequency + (APU::sweepFrequency >> nr10.bits.shift) * (nr10.bits.direction ? -1 : 1);
                 if (newFrequency > 0 && newFrequency < 0x7FF) {
                     APU::sweepFrequency = newFrequency;
                     Memory::writeByteInternal(MEM_SOUND_NR13, newFrequency & 0xF, true);
