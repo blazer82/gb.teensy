@@ -42,9 +42,10 @@ class APU {
     static void loadLength4();
 
    protected:
-    static IntervalTimer frequencyTimer[3];
+    enum Channel { square1, square2, wave, noise };
+
+    static IntervalTimer frequencyTimer[4];
     static PeriodicTimer effectTimer;
-    static IntervalTimer noiseTimer;
 
     static void (*frequencyUpdate[3])();
 
@@ -52,8 +53,7 @@ class APU {
     const static uint8_t divisor[8];
 
     volatile static bool channelEnabled[4];
-    volatile static uint16_t currentFrequency[3];
-    volatile static uint16_t currentNoiseFrequency;
+    volatile static uint16_t currentFrequency[4];
     volatile static uint8_t dutyStep[3];
     volatile static uint8_t lengthCounter[4];
     volatile static uint8_t envelopeStep[4];
