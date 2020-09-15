@@ -169,7 +169,7 @@ void APU::waveUpdate() {
         const uint8_t mixerVolume = (channelControl.bits.terminal1Volume * terminalControl.bits.waveTerminal1 +
                                      channelControl.bits.terminal2Volume * terminalControl.bits.waveTerminal2) /
                                     (terminalControl.bits.waveTerminal1 + terminalControl.bits.waveTerminal2);
-        analogWrite(AUDIO_OUT_WAVE, (waveNibble / (1 << volumeShift) * mixerVolume));
+        analogWrite(AUDIO_OUT_WAVE, (waveNibble >> volumeShift) * mixerVolume);
         APU::dutyStep[Channel::wave]++;
         APU::dutyStep[Channel::wave] %= 32;
     } else {
