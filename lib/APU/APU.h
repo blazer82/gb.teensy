@@ -122,10 +122,14 @@ class APU {
     static void loadLength2();
     static void loadLength3();
     static void loadLength4();
-    static void disableSquare1();
-    static void disableSquare2();
-    static void disableWave();
-    static void disableNoise();
+    static void disableDac1();
+    static void disableDac2();
+    static void disableDac3();
+    static void disableDac4();
+    static void enableDac1();
+    static void enableDac2();
+    static void enableDac3();
+    static void enableDac4();
 
    protected:
     enum Channel { square1, square2, wave, noise };
@@ -138,6 +142,7 @@ class APU {
     const static uint8_t duty[4];
     const static uint8_t divisor[8];
 
+    volatile static bool dacEnabled[4];
     volatile static bool channelEnabled[4];
     volatile static uint16_t currentFrequency[4];
     volatile static uint8_t dutyStep[3];
@@ -153,6 +158,10 @@ class APU {
     static void waveUpdate();
     static void noiseUpdate();
     static void effectUpdate();
+    static void disableSquare1();
+    static void disableSquare2();
+    static void disableWave();
+    static void disableNoise();
 
    private:
 };

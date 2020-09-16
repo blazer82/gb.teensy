@@ -112,7 +112,9 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             if (!internal) {
                 nrx2_register_t nrx2 = {.value = data};
                 if (nrx2.bits.volume == 0) {
-                    APU::disableSquare1();
+                    APU::disableDac1();
+                } else {
+                    APU::enableDac1();
                 }
             }
             break;
@@ -121,7 +123,9 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             if (!internal) {
                 nrx2_register_t nrx2 = {.value = data};
                 if (nrx2.bits.volume == 0) {
-                    APU::disableSquare2();
+                    APU::disableDac2();
+                } else {
+                    APU::enableDac2();
                 }
             }
             break;
@@ -129,7 +133,9 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             ioreg[location - MEM_IO_REGS] = data;
             if (!internal) {
                 if ((data & 0x80) == 0) {
-                    APU::disableWave();
+                    APU::disableDac3();
+                } else {
+                    APU::enableDac3();
                 }
             }
             break;
@@ -138,7 +144,9 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             if (!internal) {
                 nrx2_register_t nrx2 = {.value = data};
                 if (nrx2.bits.volume == 0) {
-                    APU::disableNoise();
+                    APU::disableDac4();
+                } else {
+                    APU::enableDac4();
                 }
             }
             break;
