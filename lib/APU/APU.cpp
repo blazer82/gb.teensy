@@ -152,7 +152,7 @@ void APU::waveUpdate() {
     if (APU::dacEnabled[Channel::wave] && APU::channelEnabled[Channel::wave] && (!nrx4.bits.lengthEnable || APU::lengthCounter[Channel::wave] > 0)) {
         const uint8_t volumeShift = (Memory::readByte(MEM_SOUND_NR32) >> 5) & 0x3;
         const uint8_t waveByte = Memory::readByte(MEM_SOUND_WAVE_START + APU::dutyStep[Channel::wave] / 2);
-        const uint8_t waveNibble = (waveByte >> (1 - (APU::dutyStep[Channel::wave] % 2))) & 0xF;
+        const uint8_t waveNibble = (waveByte >> (4 * (1 - (APU::dutyStep[Channel::wave] % 2)))) & 0xF;
 
         const nr50_register_t channelControl = {.value = Memory::readByte(MEM_SOUND_NR50)};
         const nr51_register_t terminalControl = {.value = Memory::readByte(MEM_SOUND_NR51)};
