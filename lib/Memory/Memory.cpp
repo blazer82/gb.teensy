@@ -105,6 +105,44 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             }
             break;
 
+        // Sound channel disable
+        // Resides in I/O region
+        case MEM_SOUND_NR12:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                nrx2_register_t nrx2 = {.value = data};
+                if (nrx2.bits.volume == 0) {
+                    APU::disableSquare1();
+                }
+            }
+            break;
+        case MEM_SOUND_NR22:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                nrx2_register_t nrx2 = {.value = data};
+                if (nrx2.bits.volume == 0) {
+                    APU::disableSquare2();
+                }
+            }
+            break;
+        case MEM_SOUND_NR30:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                if ((data & 0x80) == 0) {
+                    APU::disableWave();
+                }
+            }
+            break;
+        case MEM_SOUND_NR42:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                nrx2_register_t nrx2 = {.value = data};
+                if (nrx2.bits.volume == 0) {
+                    APU::disableNoise();
+                }
+            }
+            break;
+
         // Sound channel enable
         // Resides in I/O region
         case MEM_SOUND_NR14:

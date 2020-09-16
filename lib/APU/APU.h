@@ -28,6 +28,88 @@ using namespace TeensyTimerTool;
 #define AUDIO_OUT_WAVE    5
 #define AUDIO_OUT_NOISE   4
 
+typedef union {
+    struct {
+        unsigned shift : 3;
+        unsigned direction : 1;
+        unsigned time : 3;
+        unsigned : 1;
+    } bits;
+    uint8_t value;
+} nr10_register_t;
+
+typedef union {
+    struct {
+        unsigned length : 6;
+        unsigned duty : 2;
+    } bits;
+    uint8_t value;
+} nrx1_register_t;
+
+typedef union {
+    struct {
+        unsigned period : 3;
+        unsigned direction : 1;
+        unsigned volume : 4;
+    } bits;
+    uint8_t value;
+} nrx2_register_t;
+
+typedef union {
+    struct {
+        unsigned divisor : 3;
+        unsigned width : 1;
+        unsigned shift : 4;
+    } bits;
+    uint8_t value;
+} nr43_register_t;
+
+typedef union {
+    struct {
+        unsigned frequency : 3;
+        unsigned : 3;
+        unsigned lengthEnable : 1;
+        unsigned initial : 1;
+    } bits;
+    uint8_t value;
+} nrx4_register_t;
+
+typedef union {
+    struct {
+        unsigned terminal1Volume : 3;
+        unsigned VINTerminal1 : 1;
+        unsigned terminal2Volume : 3;
+        unsigned VINTerminal2 : 1;
+    } bits;
+    uint8_t value;
+} nr50_register_t;
+
+typedef union {
+    struct {
+        unsigned square1Terminal1 : 1;
+        unsigned square2Terminal1 : 1;
+        unsigned waveTerminal1 : 1;
+        unsigned noiseTerminal1 : 1;
+        unsigned square1Terminal2 : 1;
+        unsigned square2Terminal2 : 1;
+        unsigned waveTerminal2 : 1;
+        unsigned noiseTerminal2 : 1;
+    } bits;
+    uint8_t value;
+} nr51_register_t;
+
+typedef union {
+    struct {
+        unsigned sound1On : 1;
+        unsigned sound2On : 1;
+        unsigned sound3On : 1;
+        unsigned sound4On : 1;
+        unsigned : 3;
+        unsigned masterSwitch : 1;
+    } bits;
+    uint8_t value;
+} nr52_register_t;
+
 class APU {
    public:
     static void begin();
@@ -40,6 +122,10 @@ class APU {
     static void loadLength2();
     static void loadLength3();
     static void loadLength4();
+    static void disableSquare1();
+    static void disableSquare2();
+    static void disableWave();
+    static void disableNoise();
 
    protected:
     enum Channel { square1, square2, wave, noise };
@@ -47,7 +133,7 @@ class APU {
     static IntervalTimer frequencyTimer[4];
     static PeriodicTimer effectTimer;
 
-    static void (*frequencyUpdate[3])();
+    static void (*frequencyUpdate[4])();
 
     const static uint8_t duty[4];
     const static uint8_t divisor[8];
@@ -67,88 +153,6 @@ class APU {
     static void waveUpdate();
     static void noiseUpdate();
     static void effectUpdate();
-
-    typedef union {
-        struct {
-            unsigned shift : 3;
-            unsigned direction : 1;
-            unsigned time : 3;
-            unsigned : 1;
-        } bits;
-        uint8_t value;
-    } nr10_register_t;
-
-    typedef union {
-        struct {
-            unsigned length : 6;
-            unsigned duty : 2;
-        } bits;
-        uint8_t value;
-    } nrx1_register_t;
-
-    typedef union {
-        struct {
-            unsigned period : 3;
-            unsigned direction : 1;
-            unsigned volume : 4;
-        } bits;
-        uint8_t value;
-    } nrx2_register_t;
-
-    typedef union {
-        struct {
-            unsigned divisor : 3;
-            unsigned width : 1;
-            unsigned shift : 4;
-        } bits;
-        uint8_t value;
-    } nr43_register_t;
-
-    typedef union {
-        struct {
-            unsigned frequency : 3;
-            unsigned : 3;
-            unsigned lengthEnable : 1;
-            unsigned initial : 1;
-        } bits;
-        uint8_t value;
-    } nrx4_register_t;
-
-    typedef union {
-        struct {
-            unsigned terminal1Volume : 3;
-            unsigned VINTerminal1 : 1;
-            unsigned terminal2Volume : 3;
-            unsigned VINTerminal2 : 1;
-        } bits;
-        uint8_t value;
-    } nr50_register_t;
-
-    typedef union {
-        struct {
-            unsigned square1Terminal1 : 1;
-            unsigned square2Terminal1 : 1;
-            unsigned waveTerminal1 : 1;
-            unsigned noiseTerminal1 : 1;
-            unsigned square1Terminal2 : 1;
-            unsigned square2Terminal2 : 1;
-            unsigned waveTerminal2 : 1;
-            unsigned noiseTerminal2 : 1;
-        } bits;
-        uint8_t value;
-    } nr51_register_t;
-
-    typedef union {
-        struct {
-            unsigned sound1On : 1;
-            unsigned sound2On : 1;
-            unsigned sound3On : 1;
-            unsigned sound4On : 1;
-            unsigned : 3;
-            unsigned masterSwitch : 1;
-        } bits;
-        uint8_t value;
-    } nr52_register_t;
 
    private:
 };
