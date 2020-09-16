@@ -11,7 +11,7 @@ This is a work-in-progress Gameboy emulator for the Teensy platform. It requires
 
 - Runs Tetris
 - Passes Blargg's CPU instruction tests
-- 3 channel audio output (wave channel is missing)
+- Audio output (4 separate channels)
 
 ## Dependencies
 
