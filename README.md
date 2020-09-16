@@ -57,7 +57,15 @@ Any contribution is welcome! Please have a look at open issues and pull requests
 
 ## Credits
 
-Substantial contributions have been made by [@granthaack](https://github.com/granthaack)
+Substantial contributions have been made by:
+
+- [@granthaack](https://github.com/granthaack)
+
+The code builds upon the following libraries:
+
+- [Arduino](https://github.com/arduino/Arduino)
+- [Teensyduino](https://www.pjrc.com/teensy/teensyduino.html)
+- [TeensyTimerTool](https://github.com/luni64/TeensyTimerTool)
 
 [build-badge]: https://github.com/blazer82/gb.teensy/workflows/build/badge.svg
 [cpu-instrs-badge]: https://github.com/blazer82/gb.teensy/workflows/cpu_instrs/badge.svg

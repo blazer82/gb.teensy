@@ -40,9 +40,9 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
         // Register resides in I/O region
         case MEM_JOYPAD:
             if (internal) {
-                ioreg[MEM_JOYPAD - MEM_IO_REGS] = data;
+                ioreg[location - MEM_IO_REGS] = data;
             } else {
-                ioreg[MEM_JOYPAD - MEM_IO_REGS] = (ioreg[MEM_JOYPAD - MEM_IO_REGS] & 0xCF) | (data & 0x30);
+                ioreg[location - MEM_IO_REGS] = (ioreg[location - MEM_IO_REGS] & 0xCF) | (data & 0x30);
             }
             break;
 
@@ -50,9 +50,9 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
         // Resides in I/O region
         case MEM_LCD_STATUS:
             if (internal) {
-                ioreg[MEM_LCD_STATUS - MEM_IO_REGS] = data;
+                ioreg[location - MEM_IO_REGS] = data;
             } else {
-                ioreg[MEM_LCD_STATUS - MEM_IO_REGS] = (ioreg[MEM_LCD_STATUS - MEM_IO_REGS] & 0x07) | (data | 0xF8);
+                ioreg[location - MEM_IO_REGS] = (ioreg[location - MEM_IO_REGS] & 0x07) | (data | 0xF8);
             }
             break;
 
@@ -71,32 +71,90 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
         // Resides in I/O region
         case MEM_DIVIDER:
             if (internal) {
-                ioreg[MEM_DIVIDER - MEM_IO_REGS] = data;
+                ioreg[location - MEM_IO_REGS] = data;
             } else {
                 // Writes to the divider just clear it
-                ioreg[MEM_DIVIDER - MEM_IO_REGS] = 0x00;
+                ioreg[location - MEM_IO_REGS] = 0x00;
             }
             break;
 
         // Sound length counter
         // Resides in I/O region
         case MEM_SOUND_NR11:
-            ioreg[MEM_SOUND_NR11 - MEM_IO_REGS] = data;
+            ioreg[location - MEM_IO_REGS] = data;
             if (!internal) {
                 APU::loadLength1();
             }
             break;
         case MEM_SOUND_NR21:
-            ioreg[MEM_SOUND_NR21 - MEM_IO_REGS] = data;
+            ioreg[location - MEM_IO_REGS] = data;
             if (!internal) {
                 APU::loadLength2();
+            }
+            break;
+        case MEM_SOUND_NR31:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                APU::loadLength3();
+            }
+            break;
+        case MEM_SOUND_NR41:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                APU::loadLength4();
+            }
+            break;
+
+        // Sound channel disable
+        // Resides in I/O region
+        case MEM_SOUND_NR12:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                nrx2_register_t nrx2 = {.value = data};
+                if (nrx2.bits.volume == 0) {
+                    APU::disableDac1();
+                } else {
+                    APU::enableDac1();
+                }
+            }
+            break;
+        case MEM_SOUND_NR22:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                nrx2_register_t nrx2 = {.value = data};
+                if (nrx2.bits.volume == 0) {
+                    APU::disableDac2();
+                } else {
+                    APU::enableDac2();
+                }
+            }
+            break;
+        case MEM_SOUND_NR30:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                if ((data & 0x80) == 0) {
+                    APU::disableDac3();
+                } else {
+                    APU::enableDac3();
+                }
+            }
+            break;
+        case MEM_SOUND_NR42:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                nrx2_register_t nrx2 = {.value = data};
+                if (nrx2.bits.volume == 0) {
+                    APU::disableDac4();
+                } else {
+                    APU::enableDac4();
+                }
             }
             break;
 
         // Sound channel enable
         // Resides in I/O region
         case MEM_SOUND_NR14:
-            ioreg[MEM_SOUND_NR14 - MEM_IO_REGS] = data;
+            ioreg[location - MEM_IO_REGS] = data;
             if (!internal) {
                 if (data >> 7) {
                     APU::triggerSquare1();
@@ -104,15 +162,23 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             }
             break;
         case MEM_SOUND_NR24:
-            ioreg[MEM_SOUND_NR24 - MEM_IO_REGS] = data;
+            ioreg[location - MEM_IO_REGS] = data;
             if (!internal) {
                 if (data >> 7) {
                     APU::triggerSquare2();
                 }
             }
             break;
+        case MEM_SOUND_NR34:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerWave();
+                }
+            }
+            break;
         case MEM_SOUND_NR44:
-            ioreg[MEM_SOUND_NR44 - MEM_IO_REGS] = data;
+            ioreg[location - MEM_IO_REGS] = data;
             if (!internal) {
                 if (data >> 7) {
                     APU::triggerNoise();
