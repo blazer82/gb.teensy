@@ -150,7 +150,7 @@ void APU::waveUpdate() {
     const nrx4_register_t nrx4 = {.value = Memory::readByte(MEM_SOUND_NR34)};
 
     if (APU::channelEnabled[Channel::wave] && (!nrx4.bits.lengthEnable || APU::lengthCounter[Channel::wave] > 0)) {
-        const uint8_t volumeShift = ((Memory::readByte(MEM_SOUND_NR32) >> 5) & 0x3);
+        const uint8_t volumeShift = (Memory::readByte(MEM_SOUND_NR32) >> 5) & 0x3;
         const uint8_t waveByte = Memory::readByte(MEM_SOUND_WAVE_START + APU::dutyStep[Channel::wave] / 2);
         const uint8_t waveNibble = (waveByte >> (1 - (APU::dutyStep[Channel::wave] % 2))) & 0xF;
 
@@ -159,7 +159,7 @@ void APU::waveUpdate() {
         const uint8_t mixerVolume = (channelControl.bits.terminal1Volume * terminalControl.bits.waveTerminal1 +
                                      channelControl.bits.terminal2Volume * terminalControl.bits.waveTerminal2) /
                                     (terminalControl.bits.waveTerminal1 + terminalControl.bits.waveTerminal2);
-        analogWrite(AUDIO_OUT_WAVE, (waveNibble >> volumeShift) * mixerVolume);
+        analogWrite(AUDIO_OUT_WAVE, (waveNibble >> (volumeShift == 0 ? 4 : volumeShift - 1)) * mixerVolume);
         APU::dutyStep[Channel::wave]++;
         APU::dutyStep[Channel::wave] %= 32;
     } else {
