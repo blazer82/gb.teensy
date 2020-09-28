@@ -19,6 +19,7 @@
 #include "CPU.h"
 
 #include <Arduino.h>
+#include <Timer.h>
 #include <time.h>
 
 #include "Memory.h"
@@ -144,7 +145,6 @@ uint8_t CPU::timerCycles = 0, CPU::timerTotalCycles = 0xFF;
 
 uint8_t CPU::cyclesDelta = 0;
 
-// Debug variables
 #ifdef DEBUG_AFTER_CYCLE
 uint64_t debugAfterCycle = DEBUG_AFTER_CYCLE;
 #endif
@@ -275,43 +275,8 @@ void CPU::cpuStep() {
 #endif
 
     // Update timer
-    // Check to see if timer is enabled
-    if ((Memory::readByte(MEM_TIMER_CONTROL) & 0x04)) {
-        // Check the current TAC Input Clock Select field
-        switch (Memory::readByte(MEM_TIMER_CONTROL) & 0x03) {
-            // Take the modulo of total cycles with a divider based
-            // on TAC. If this is 0, TIMA will be incremented
-            case 3:
-                timerTotalCycles = 64;
-                break;
-
-            case 2:
-                timerTotalCycles = 16;
-                break;
-
-            case 1:
-                timerTotalCycles = 4;
-                break;
-
-            default:
-                timerTotalCycles = 250;
-                break;
-        }
-
-        const uint8_t newTimerCycles = timerCycles + cyclesDelta;
-        while (timerCycles < newTimerCycles) {
-            timerCycles++;
-            if (timerCycles == timerTotalCycles) {
-                Memory::writeByteInternal(MEM_TIMA, Memory::readByte(MEM_TIMA) + 1, true);
-
-                if (Memory::readByte(MEM_TIMA) == 0) {
-                    Memory::writeByteInternal(MEM_TIMA, Memory::readByte(MEM_TMA), true);
-                    Memory::interrupt(IRQ_TIMER);
-                }
-            }
-        }
-
-        timerCycles %= timerTotalCycles;
+    for (uint8_t i = 0; i < cyclesDelta; i++) {
+        Timer::timerStep();
     }
 
     // Check for interrupts
@@ -331,6 +296,7 @@ void CPU::cpuStep() {
                     pushStack(PC);
                     PC = PC_LCD_STAT;
                 } else if ((interrupt & IRQ_TIMER) == IRQ_TIMER) {
+                    Serial.println("Servicing Timer IRQ");
                     Memory::writeByte(MEM_IRQ_FLAG, Memory::readByte(MEM_IRQ_FLAG) & (0xFF - IRQ_TIMER));
                     pushStack(PC);
                     PC = PC_TIMER;
@@ -348,17 +314,6 @@ void CPU::cpuStep() {
             halted = 0;
         }
     }
-
-    // Update divider register
-    const uint8_t newDivider = divider + cyclesDelta;
-    while (divider < newDivider) {
-        divider++;
-        if (divider == 61) {
-            Memory::writeByteInternal(MEM_DIVIDER, Memory::readByte(MEM_DIVIDER) + 1, true);
-        }
-    }
-    divider %= 61;
-
     // Check if halted
     if (halted) {
         cyclesDelta = 1;  // In order for the timer to work properly
@@ -375,7 +330,7 @@ void CPU::cpuStep() {
     op = readOp();
 
 #ifdef DEBUG_AFTER_CYCLE
-    if (debugAfterCycle > 0 && totalCycles >= debugAfterCycle) {
+    if (debugAfterCycle >= 0 && totalCycles >= debugAfterCycle) {
         delay(20);
         Serial.printf("Cycle %llu: %02x at %04x - ", totalCycles, op, PC - 1);
         dumpRegister();
@@ -730,13 +685,13 @@ void CPU::cpuStep() {
         // LD A,(C)
         case 0xF2:
             AF = LD_Nn_n(AF, Memory::readByte(BC | 0xFF00));
-            cyclesDelta = 8;
+            cyclesDelta = 2;
             break;
 
         // LD (C),A
         case 0xE2:
             Memory::writeByte(BC | 0xFF00, AF >> 8);
-            cyclesDelta = 8;
+            cyclesDelta = 2;
             break;
 
         // LDH (n),A
@@ -1552,56 +1507,58 @@ void CPU::cpuStep() {
 
         // Multiple OP codes depending on n
         case 0xCB:
+            // Fetching the next byte takes another cycle
             n = readOp();
+            cyclesDelta = 1;
             switch (n) {
                 // RLC c
                 case 0x07:
                     c = (AF >> 15) & 0x01;
                     AF = LD_Nn_Nn(AF, ((AF & 0xFF00) << 1) | (c << 8));
                     AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x00:
                     c = (BC >> 15) & 0x01;
                     BC = LD_Nn_Nn(BC, ((BC & 0xFF00) << 1) | (c << 8));
                     AF = LD_nN_n(AF, ZERO_S(BC & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x01:
                     c = (BC >> 7) & 0x01;
                     BC = LD_nN_nN(BC, (BC << 1) | c);
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x02:
                     c = (DE >> 15) & 0x01;
                     DE = LD_Nn_Nn(DE, ((DE & 0xFF00) << 1) | (c << 8));
                     AF = LD_nN_n(AF, ZERO_S(DE & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x03:
                     c = (DE >> 7) & 0x01;
                     DE = LD_nN_nN(DE, (DE << 1) | c);
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x04:
                     c = (HL >> 15) & 0x01;
                     HL = LD_Nn_Nn(HL, ((HL & 0xFF00) << 1) | (c << 8));
                     AF = LD_nN_n(AF, ZERO_S(HL & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x05:
                     c = (HL >> 7) & 0x01;
                     HL = LD_nN_nN(HL, (HL << 1) | c);
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x06:
                     c = (Memory::readByte(HL) >> 7) & 0x01;
                     Memory::writeByte(HL, (Memory::readByte(HL) << 1) | c);
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
 
                 // RL n
@@ -1609,49 +1566,49 @@ void CPU::cpuStep() {
                     c = (AF >> 15) & 0x01;
                     AF = LD_Nn_Nn(AF, ((AF & 0xFF00) << 1) | (CARRY_F(AF) << 4));
                     AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x10:
                     c = (BC >> 15) & 0x01;
                     BC = LD_Nn_Nn(BC, ((BC & 0xFF00) << 1) | (CARRY_F(AF) << 4));
                     AF = LD_nN_n(AF, ZERO_S(BC & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x11:
                     c = (BC >> 7) & 0x01;
                     BC = LD_nN_nN(BC, (BC << 1) | (CARRY_F(AF) >> 4));
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x12:
                     c = (DE >> 15) & 0x01;
                     DE = LD_Nn_Nn(DE, ((DE & 0xFF00) << 1) | (CARRY_F(AF) << 4));
                     AF = LD_nN_n(AF, ZERO_S(DE & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x13:
                     c = (DE >> 7) & 0x01;
                     DE = LD_nN_nN(DE, (DE << 1) | (CARRY_F(AF) >> 4));
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x14:
                     c = (HL >> 15) & 0x01;
                     HL = LD_Nn_Nn(HL, ((HL & 0xFF00) << 1) | (CARRY_F(AF) << 4));
                     AF = LD_nN_n(AF, ZERO_S(HL & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x15:
                     c = (HL >> 7) & 0x01;
                     HL = LD_nN_nN(HL, (HL << 1) | (CARRY_F(AF) >> 4));
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x16:
                     c = (Memory::readByte(HL) >> 7) & 0x01;
                     Memory::writeByte(HL, (Memory::readByte(HL) << 1) | (CARRY_F(AF) >> 4));
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
 
                 // RRC n
@@ -1659,49 +1616,49 @@ void CPU::cpuStep() {
                     c = (AF >> 8) & 0x01;
                     AF = LD_Nn_Nn(AF, (AF >> 1) | (c << 15));
                     AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x08:
                     c = (BC >> 8) & 0x01;
                     BC = LD_Nn_Nn(BC, (BC >> 1) | (c << 15));
                     AF = LD_nN_n(AF, ZERO_S(BC & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x09:
                     c = BC & 0x01;
                     BC = LD_nN_nN(BC, ((BC & 0x00FF) >> 1) | (c << 7));
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x0A:
                     c = (DE >> 8) & 0x01;
                     DE = LD_Nn_Nn(DE, (DE >> 1) | (c << 15));
                     AF = LD_nN_n(AF, ZERO_S(DE & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x0B:
                     c = DE & 0x01;
                     DE = LD_nN_nN(DE, ((DE & 0x00FF) >> 1) | (c << 7));
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x0C:
                     c = (HL >> 8) & 0x01;
                     HL = LD_Nn_Nn(HL, (HL >> 1) | (c << 15));
                     AF = LD_nN_n(AF, ZERO_S(HL & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x0D:
                     c = HL & 0x01;
                     HL = LD_nN_nN(HL, ((HL & 0x00FF) >> 1) | (c << 7));
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x0E:
                     c = Memory::readByte(HL) & 0x01;
                     Memory::writeByte(HL, (Memory::readByte(HL) >> 1) | (c << 7));
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
 
                 // RR n
@@ -1709,49 +1666,49 @@ void CPU::cpuStep() {
                     c = (AF >> 8) & 0x01;
                     AF = LD_Nn_Nn(AF, (AF >> 1) | (CARRY_F(AF) << 11));
                     AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x18:
                     c = (BC >> 8) & 0x01;
                     BC = LD_Nn_Nn(BC, (BC >> 1) | (CARRY_F(AF) << 11));
                     AF = LD_nN_n(AF, ZERO_S(BC & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x19:
                     c = BC & 0x01;
                     BC = LD_nN_nN(BC, ((BC & 0x00FF) >> 1) | (CARRY_F(AF) << 3));
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x1A:
                     c = (DE >> 8) & 0x01;
                     DE = LD_Nn_Nn(DE, (DE >> 1) | (CARRY_F(AF) << 11));
                     AF = LD_nN_n(AF, ZERO_S(DE & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x1B:
                     c = DE & 0x01;
                     DE = LD_nN_nN(DE, ((DE & 0x00FF) >> 1) | (CARRY_F(AF) << 3));
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x1C:
                     c = (HL >> 8) & 0x01;
                     HL = LD_Nn_Nn(HL, (HL >> 1) | (CARRY_F(AF) << 11));
                     AF = LD_nN_n(AF, ZERO_S(HL & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x1D:
                     c = HL & 0x01;
                     HL = LD_nN_nN(HL, ((HL & 0x00FF) >> 1) | (CARRY_F(AF) << 3));
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x1E:
                     c = Memory::readByte(HL) & 0x01;
                     Memory::writeByte(HL, (Memory::readByte(HL) >> 1) | (CARRY_F(AF) << 3));
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
 
                 // SLA n
@@ -1759,49 +1716,49 @@ void CPU::cpuStep() {
                     c = (AF >> 15) & 0x01;
                     AF = LD_Nn_Nn(AF, (AF & 0xFF00) << 1);
                     AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x20:
                     c = (BC >> 15) & 0x01;
                     BC = LD_Nn_Nn(BC, (BC & 0xFF00) << 1);
                     AF = LD_nN_n(AF, ZERO_S(BC & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x21:
                     c = (BC >> 7) & 0x01;
                     BC = LD_nN_nN(BC, BC << 1);
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x22:
                     c = (DE >> 15) & 0x01;
                     DE = LD_Nn_Nn(DE, (DE & 0xFF00) << 1);
                     AF = LD_nN_n(AF, ZERO_S(DE & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x23:
                     c = (DE >> 7) & 0x01;
                     DE = LD_nN_nN(DE, DE << 1);
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x24:
                     c = (HL >> 15) & 0x01;
                     HL = LD_Nn_Nn(HL, (HL & 0xFF00) << 1);
                     AF = LD_nN_n(AF, ZERO_S(HL & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x25:
                     c = (HL >> 7) & 0x01;
                     HL = LD_nN_nN(HL, HL << 1);
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x26:
                     c = (Memory::readByte(HL) >> 7) & 0x01;
                     Memory::writeByte(HL, Memory::readByte(HL) << 1);
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
 
                 // SRA n
@@ -1809,49 +1766,49 @@ void CPU::cpuStep() {
                     c = (AF >> 8) & 0x01;
                     AF = LD_Nn_Nn(AF, (AF >> 1) | (AF & 0x8000));
                     AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x28:
                     c = (BC >> 8) & 0x01;
                     BC = LD_Nn_Nn(BC, (BC >> 1) | (BC & 0x8000));
                     AF = LD_nN_n(AF, ZERO_S(BC & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x29:
                     c = BC & 0x01;
                     BC = LD_nN_nN(BC, ((BC & 0x00FF) >> 1) | (BC & 0x0080));
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x2A:
                     c = (DE >> 8) & 0x01;
                     DE = LD_Nn_Nn(DE, (DE >> 1) | (DE & 0x8000));
                     AF = LD_nN_n(AF, ZERO_S(DE & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x2B:
                     c = DE & 0x01;
                     DE = LD_nN_nN(DE, ((DE & 0x00FF) >> 1) | (DE & 0x0080));
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x2C:
                     c = (HL >> 8) & 0x01;
                     HL = LD_Nn_Nn(HL, (HL >> 1) | (HL & 0x8000));
                     AF = LD_nN_n(AF, ZERO_S(HL & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x2D:
                     c = HL & 0x01;
                     HL = LD_nN_nN(HL, ((HL & 0x00FF) >> 1) | (HL & 0x0080));
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x2E:
                     c = Memory::readByte(HL) & 0x01;
                     Memory::writeByte(HL, (Memory::readByte(HL) >> 1) | (Memory::readByte(HL) & 0x0080));
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
 
                 // SRL n
@@ -1859,869 +1816,869 @@ void CPU::cpuStep() {
                     c = (AF >> 8) & 0x01;
                     AF = LD_Nn_Nn(AF, AF >> 1);
                     AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x38:
                     c = (BC >> 8) & 0x01;
                     BC = LD_Nn_Nn(BC, BC >> 1);
                     AF = LD_nN_n(AF, ZERO_S(BC & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x39:
                     c = BC & 0x01;
                     BC = LD_nN_nN(BC, (BC & 0x00FF) >> 1);
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x3A:
                     c = (DE >> 8) & 0x01;
                     DE = LD_Nn_Nn(DE, DE >> 1);
                     AF = LD_nN_n(AF, ZERO_S(DE & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x3B:
                     c = DE & 0x01;
                     DE = LD_nN_nN(DE, (DE & 0x00FF) >> 1);
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x3C:
                     c = (HL >> 8) & 0x01;
                     HL = LD_Nn_Nn(HL, HL >> 1);
                     AF = LD_nN_n(AF, ZERO_S(HL & 0xFF00) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x3D:
                     c = HL & 0x01;
                     HL = LD_nN_nN(HL, (HL & 0x00FF) >> 1);
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x00FF) | (c << 4));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x3E:
                     c = Memory::readByte(HL) & 0x01;
                     Memory::writeByte(HL, Memory::readByte(HL) >> 1);
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)) | (c << 4));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
 
                 // BIT b,r
                 case 0x47:
                     AF = LD_nN_n(AF, ZERO_S(AF & 0x0100) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x40:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0100) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x41:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0001) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x42:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0100) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x43:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0001) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x44:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0100) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x45:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0001) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x46:
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x01) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0x4F:
                     AF = LD_nN_n(AF, ZERO_S(AF & 0x0200) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x48:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0200) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x49:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0002) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x4A:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0200) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x4B:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0002) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x4C:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0200) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x4D:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0002) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x4E:
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x02) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0x57:
                     AF = LD_nN_n(AF, ZERO_S(AF & 0x0400) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x50:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0400) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x51:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0004) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x52:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0400) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x53:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0004) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x54:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0400) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x55:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0004) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x56:
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x04) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0x5F:
                     AF = LD_nN_n(AF, ZERO_S(AF & 0x0800) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x58:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0800) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x59:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0008) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x5A:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0800) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x5B:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0008) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x5C:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0800) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x5D:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0008) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x5E:
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x08) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0x67:
                     AF = LD_nN_n(AF, ZERO_S(AF & 0x1000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x60:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x1000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x61:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0010) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x62:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x1000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x63:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0010) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x64:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x1000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x65:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0010) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x66:
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x10) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0x6F:
                     AF = LD_nN_n(AF, ZERO_S(AF & 0x2000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x68:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x2000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x69:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0020) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x6A:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x2000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x6B:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0020) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x6C:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x2000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x6D:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0020) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x6E:
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x20) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0x77:
                     AF = LD_nN_n(AF, ZERO_S(AF & 0x4000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x70:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x4000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x71:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0040) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x72:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x4000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x73:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0040) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x74:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x4000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x75:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0040) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x76:
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x40) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0x7F:
                     AF = LD_nN_n(AF, ZERO_S(AF & 0x8000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x78:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x8000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x79:
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x0080) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x7A:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x8000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x7B:
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x0080) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x7C:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x8000) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x7D:
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x0080) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x7E:
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL) & 0x80) | HALF_V | CARRY_F(AF));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
 
                 // SET b,r
                 case 0xC7:
                     AF = AF | 0x0100;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xC0:
                     BC = BC | 0x0100;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xC1:
                     BC = BC | 0x0001;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xC2:
                     DE = DE | 0x0100;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xC3:
                     DE = DE | 0x0001;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xC4:
                     HL = HL | 0x0100;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xC5:
                     HL = HL | 0x0001;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xC6:
                     Memory::writeByte(HL, Memory::readByte(HL) | 0x01);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0xCF:
                     AF = AF | 0x0200;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xC8:
                     BC = BC | 0x0200;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xC9:
                     BC = BC | 0x0002;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xCA:
                     DE = DE | 0x0200;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xCB:
                     DE = DE | 0x0002;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xCC:
                     HL = HL | 0x0200;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xCD:
                     HL = HL | 0x0002;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xCE:
                     Memory::writeByte(HL, Memory::readByte(HL) | 0x02);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0xD7:
                     AF = AF | 0x0400;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xD0:
                     BC = BC | 0x0400;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xD1:
                     BC = BC | 0x0004;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xD2:
                     DE = DE | 0x0400;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xD3:
                     DE = DE | 0x0004;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xD4:
                     HL = HL | 0x0400;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xD5:
                     HL = HL | 0x0004;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xD6:
                     Memory::writeByte(HL, Memory::readByte(HL) | 0x04);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0xDF:
                     AF = AF | 0x0800;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xD8:
                     BC = BC | 0x0800;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xD9:
                     BC = BC | 0x0008;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xDA:
                     DE = DE | 0x0800;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xDB:
                     DE = DE | 0x0008;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xDC:
                     HL = HL | 0x0800;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xDD:
                     HL = HL | 0x0008;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xDE:
                     Memory::writeByte(HL, Memory::readByte(HL) | 0x08);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0xE7:
                     AF = AF | 0x1000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xE0:
                     BC = BC | 0x1000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xE1:
                     BC = BC | 0x0010;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xE2:
                     DE = DE | 0x1000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xE3:
                     DE = DE | 0x0010;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xE4:
                     HL = HL | 0x1000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xE5:
                     HL = HL | 0x0010;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xE6:
                     Memory::writeByte(HL, Memory::readByte(HL) | 0x10);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0xEF:
                     AF = AF | 0x2000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xE8:
                     BC = BC | 0x2000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xE9:
                     BC = BC | 0x0020;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xEA:
                     DE = DE | 0x2000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xEB:
                     DE = DE | 0x0020;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xEC:
                     HL = HL | 0x2000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xED:
                     HL = HL | 0x0020;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xEE:
                     Memory::writeByte(HL, Memory::readByte(HL) | 0x20);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0xF7:
                     AF = AF | 0x4000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xF0:
                     BC = BC | 0x4000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xF1:
                     BC = BC | 0x0040;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xF2:
                     DE = DE | 0x4000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xF3:
                     DE = DE | 0x0040;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xF4:
                     HL = HL | 0x4000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xF5:
                     HL = HL | 0x0040;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xF6:
                     Memory::writeByte(HL, Memory::readByte(HL) | 0x40);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0xFF:
                     AF = AF | 0x8000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xF8:
                     BC = BC | 0x8000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xF9:
                     BC = BC | 0x0080;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xFA:
                     DE = DE | 0x8000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xFB:
                     DE = DE | 0x0080;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xFC:
                     HL = HL | 0x8000;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xFD:
                     HL = HL | 0x0080;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xFE:
                     Memory::writeByte(HL, Memory::readByte(HL) | 0x80);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
 
                 // RES b,r
                 case 0x87:
                     AF = AF & 0xFEFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x80:
                     BC = BC & 0xFEFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x81:
                     BC = BC & 0xFFFE;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x82:
                     DE = DE & 0xFEFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x83:
                     DE = DE & 0xFFFE;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x84:
                     HL = HL & 0xFEFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x85:
                     HL = HL & 0xFFFE;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x86:
                     Memory::writeByte(HL, Memory::readByte(HL) & 0xFE);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0x8F:
                     AF = AF & 0xFDFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x88:
                     BC = BC & 0xFDFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x89:
                     BC = BC & 0xFFFD;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x8A:
                     DE = DE & 0xFDFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x8B:
                     DE = DE & 0xFFFD;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x8C:
                     HL = HL & 0xFDFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x8D:
                     HL = HL & 0xFFFD;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x8E:
                     Memory::writeByte(HL, Memory::readByte(HL) & 0xFD);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0x97:
                     AF = AF & 0xFBFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x90:
                     BC = BC & 0xFBFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x91:
                     BC = BC & 0xFFFB;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x92:
                     DE = DE & 0xFBFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x93:
                     DE = DE & 0xFFFB;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x94:
                     HL = HL & 0xFBFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x95:
                     HL = HL & 0xFFFB;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x96:
                     Memory::writeByte(HL, Memory::readByte(HL) & 0xFB);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0x9F:
                     AF = AF & 0xF7FF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x98:
                     BC = BC & 0xF7FF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x99:
                     BC = BC & 0xFFF7;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x9A:
                     DE = DE & 0xF7FF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x9B:
                     DE = DE & 0xFFF7;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x9C:
                     HL = HL & 0xF7FF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x9D:
                     HL = HL & 0xFFF7;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x9E:
                     Memory::writeByte(HL, Memory::readByte(HL) & 0xF7);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0xA7:
                     AF = AF & 0xEFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xA0:
                     BC = BC & 0xEFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xA1:
                     BC = BC & 0xFFEF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xA2:
                     DE = DE & 0xEFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xA3:
                     DE = DE & 0xFFEF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xA4:
                     HL = HL & 0xEFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xA5:
                     HL = HL & 0xFFEF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xA6:
                     Memory::writeByte(HL, Memory::readByte(HL) & 0xEF);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0xAF:
                     AF = AF & 0xDFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xA8:
                     BC = BC & 0xDFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xA9:
                     BC = BC & 0xFFDF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xAA:
                     DE = DE & 0xDFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xAB:
                     DE = DE & 0xFFDF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xAC:
                     HL = HL & 0xDFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xAD:
                     HL = HL & 0xFFDF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xAE:
                     Memory::writeByte(HL, Memory::readByte(HL) & 0xDF);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0xB7:
                     AF = AF & 0xBFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xB0:
                     BC = BC & 0xBFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xB1:
                     BC = BC & 0xFFBF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xB2:
                     DE = DE & 0xBFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xB3:
                     DE = DE & 0xFFBF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xB4:
                     HL = HL & 0xBFFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xB5:
                     HL = HL & 0xFFBF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xB6:
                     Memory::writeByte(HL, Memory::readByte(HL) & 0xBF);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
                 case 0xBF:
                     AF = AF & 0x7FFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xB8:
                     BC = BC & 0x7FFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xB9:
                     BC = BC & 0xFF7F;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xBA:
                     DE = DE & 0x7FFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xBB:
                     DE = DE & 0xFF7F;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xBC:
                     HL = HL & 0x7FFF;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xBD:
                     HL = HL & 0xFF7F;
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0xBE:
                     Memory::writeByte(HL, Memory::readByte(HL) & 0x7F);
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
 
                 // SWAP n
                 case 0x37:
                     AF = LD_Nn_Nn(AF, ((AF & 0xF000) >> 4) | ((AF & 0x0F00) << 4));
                     AF = LD_nN_n(AF, ZERO_S(AF & 0xFF00));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x30:
                     BC = LD_Nn_Nn(BC, ((BC & 0xF000) >> 4) | ((BC & 0x0F00) << 4));
                     AF = LD_nN_n(AF, ZERO_S(BC & 0xFF00));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x31:
                     BC = LD_nN_nN(BC, ((BC & 0x00F0) >> 4) | ((BC & 0x000F) << 4));
                     AF = LD_nN_n(AF, ZERO_S(BC & 0x00FF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x32:
                     DE = LD_Nn_Nn(DE, ((DE & 0xF000) >> 4) | ((DE & 0x0F00) << 4));
                     AF = LD_nN_n(AF, ZERO_S(DE & 0xFF00));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x33:
                     DE = LD_nN_nN(DE, ((DE & 0x00F0) >> 4) | ((DE & 0x000F) << 4));
                     AF = LD_nN_n(AF, ZERO_S(DE & 0x00FF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x34:
                     HL = LD_Nn_Nn(HL, ((HL & 0xF000) >> 4) | ((HL & 0x0F00) << 4));
                     AF = LD_nN_n(AF, ZERO_S(HL & 0xFF00));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x35:
                     HL = LD_nN_nN(HL, ((HL & 0x00F0) >> 4) | ((HL & 0x000F) << 4));
                     AF = LD_nN_n(AF, ZERO_S(HL & 0x00FF));
-                    cyclesDelta = 2;
+                    cyclesDelta += 2;
                     break;
                 case 0x36:
                     Memory::writeByte(HL, ((Memory::readByte(HL) & 0xF0) >> 4) | ((Memory::readByte(HL) & 0x0F) << 4));
                     AF = LD_nN_n(AF, ZERO_S(Memory::readByte(HL)));
-                    cyclesDelta = 4;
+                    cyclesDelta += 4;
                     break;
 
                 default:
-                    Serial.printf("%02x NOT IMPLEMENTED (at %04x)\n\n", op, PC - 2);
+                    Serial.printf("0xCB prefixed instruction %02x NOT IMPLEMENTED (at %04x)\n\n", op, PC - 2);
                     stopAndRestart();
             }
 
@@ -2775,7 +2732,7 @@ void CPU::cpuStep() {
         // JP nn
         case 0xC3:
             PC = readNn();
-            cyclesDelta = 3;
+            cyclesDelta = 4;
             break;
 
         // JP cc,nn
@@ -2783,29 +2740,37 @@ void CPU::cpuStep() {
             nn = readNn();
             if (ZERO_F(AF) == 0) {
                 PC = nn;
+                cyclesDelta = 4;
+            } else {
+                cyclesDelta = 3;
             }
-            cyclesDelta = 3;
             break;
         case 0xCA:
             nn = readNn();
             if (ZERO_F(AF) == ZERO_V) {
                 PC = nn;
+                cyclesDelta = 4;
+            } else {
+                cyclesDelta = 3;
             }
-            cyclesDelta = 3;
             break;
         case 0xD2:
             nn = readNn();
             if (CARRY_F(AF) == 0) {
                 PC = nn;
+                cyclesDelta = 4;
+            } else {
+                cyclesDelta = 3;
             }
-            cyclesDelta = 3;
             break;
         case 0xDA:
             nn = readNn();
             if (CARRY_F(AF) == CARRY_V) {
                 PC = nn;
+                cyclesDelta = 4;
+            } else {
+                cyclesDelta = 3;
             }
-            cyclesDelta = 3;
             break;
 
         // JP (HL)
@@ -2817,7 +2782,7 @@ void CPU::cpuStep() {
         // JR n
         case 0x18:
             PC += (int8_t)readOp();
-            cyclesDelta = 2;
+            cyclesDelta = 3;
             break;
 
         // JR cc,n
@@ -2825,29 +2790,37 @@ void CPU::cpuStep() {
             n = readOp();
             if (ZERO_F(AF) == 0) {
                 PC += (int8_t)n;
+                cyclesDelta = 3;
+            } else {
+                cyclesDelta = 2;
             }
-            cyclesDelta = 2;
             break;
         case 0x28:
             n = readOp();
             if (ZERO_F(AF) == ZERO_V) {
                 PC += (int8_t)n;
+                cyclesDelta = 3;
+            } else {
+                cyclesDelta = 2;
             }
-            cyclesDelta = 2;
             break;
         case 0x30:
             n = readOp();
             if (CARRY_F(AF) == 0) {
                 PC += (int8_t)n;
+                cyclesDelta = 3;
+            } else {
+                cyclesDelta = 2;
             }
-            cyclesDelta = 2;
             break;
         case 0x38:
             n = readOp();
             if (CARRY_F(AF) == CARRY_V) {
                 PC += (int8_t)n;
+                cyclesDelta = 3;
+            } else {
+                cyclesDelta = 2;
             }
-            cyclesDelta = 2;
             break;
 
         // CALL nn
@@ -2855,7 +2828,7 @@ void CPU::cpuStep() {
             nn = readNn();
             pushStack(PC);
             PC = nn;
-            cyclesDelta = 3;
+            cyclesDelta = 6;
             break;
 
         // CALL cc,nn
@@ -2864,113 +2837,129 @@ void CPU::cpuStep() {
             if (ZERO_F(AF) == 0) {
                 pushStack(PC);
                 PC = nn;
+                cyclesDelta = 6;
+            } else {
+                cyclesDelta = 3;
             }
-            cyclesDelta = 3;
             break;
         case 0xCC:
             nn = readNn();
             if (ZERO_F(AF) == ZERO_V) {
                 pushStack(PC);
                 PC = nn;
+                cyclesDelta = 6;
+            } else {
+                cyclesDelta = 3;
             }
-            cyclesDelta = 3;
             break;
         case 0xD4:
             nn = readNn();
             if (CARRY_F(AF) == 0) {
                 pushStack(PC);
                 PC = nn;
+                cyclesDelta = 6;
+            } else {
+                cyclesDelta = 3;
             }
-            cyclesDelta = 3;
             break;
         case 0xDC:
             nn = readNn();
             if (CARRY_F(AF) == CARRY_V) {
                 pushStack(PC);
                 PC = nn;
+                cyclesDelta = 6;
+            } else {
+                cyclesDelta = 3;
             }
-            cyclesDelta = 3;
             break;
 
         // RST n
         case 0xC7:
             pushStack(PC);
             PC = 0x00;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xCF:
             pushStack(PC);
             PC = 0x08;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xD7:
             pushStack(PC);
             PC = 0x10;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xDF:
             pushStack(PC);
             PC = 0x18;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xE7:
             pushStack(PC);
             PC = 0x20;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xEF:
             pushStack(PC);
             PC = 0x28;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xF7:
             pushStack(PC);
             PC = 0x30;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
         case 0xFF:
             pushStack(PC);
             PC = 0x38;
-            cyclesDelta = 8;
+            cyclesDelta = 4;
             break;
 
         // RET
         case 0xC9:
             PC = popStack();
-            cyclesDelta = 2;
+            cyclesDelta = 4;
             break;
 
         // RET cc
         case 0xC0:
             if (ZERO_F(AF) == 0) {
                 PC = popStack();
+                cyclesDelta = 5;
+            } else {
+                cyclesDelta = 2;
             }
-            cyclesDelta = 2;
             break;
         case 0xC8:
             if (ZERO_F(AF) == ZERO_V) {
                 PC = popStack();
+                cyclesDelta = 5;
+            } else {
+                cyclesDelta = 2;
             }
-            cyclesDelta = 2;
             break;
         case 0xD0:
             if (CARRY_F(AF) == 0) {
                 PC = popStack();
+                cyclesDelta = 5;
+            } else {
+                cyclesDelta = 2;
             }
-            cyclesDelta = 2;
             break;
         case 0xD8:
             if (CARRY_F(AF) == CARRY_V) {
                 PC = popStack();
+                cyclesDelta = 5;
+            } else {
+                cyclesDelta = 2;
             }
-            cyclesDelta = 2;
             break;
 
         // RETI
         case 0xD9:
             PC = popStack();
             enableIRQ = 2;
-            cyclesDelta = 2;
+            cyclesDelta = 4;
             break;
 
         default:

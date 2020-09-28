@@ -58,7 +58,7 @@ class CPU {
     // IRQ control
     static uint8_t enableIRQ, disableIRQ;
 
-    // Divider interval
+    // Divider register
     static uint8_t divider;
 
     // Timer control
