@@ -41,9 +41,9 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
         // Register resides in I/O region
         case MEM_JOYPAD:
             if (internal) {
-                ioreg[MEM_JOYPAD - MEM_IO_REGS] = data;
+                ioreg[location - MEM_IO_REGS] = data;
             } else {
-                ioreg[MEM_JOYPAD - MEM_IO_REGS] = (ioreg[MEM_JOYPAD - MEM_IO_REGS] & 0xCF) | (data & 0x30);
+                ioreg[location - MEM_IO_REGS] = (ioreg[location - MEM_IO_REGS] & 0xCF) | (data & 0x30);
             }
             break;
 
@@ -51,9 +51,9 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
         // Resides in I/O region
         case MEM_LCD_STATUS:
             if (internal) {
-                ioreg[MEM_LCD_STATUS - MEM_IO_REGS] = data;
+                ioreg[location - MEM_IO_REGS] = data;
             } else {
-                ioreg[MEM_LCD_STATUS - MEM_IO_REGS] = (ioreg[MEM_LCD_STATUS - MEM_IO_REGS] & 0x07) | (data | 0xF8);
+                ioreg[location - MEM_IO_REGS] = (ioreg[location - MEM_IO_REGS] & 0x07) | (data | 0xF8);
             }
             break;
 
@@ -69,22 +69,22 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             break;
         // Handle writes to the Divider (DIV) register
         case MEM_DIVIDER:
-            Timer::writeDiv(data);
+            GBTimer::writeDiv(data);
             break;
 
         // Handle writes to the TIMA register
         case MEM_TIMA:
-            Timer::writeTima(data);
+            GBTimer::writeTima(data);
             break;
 
         // Handle writes to the TMA Register
         case MEM_TMA:
-            Timer::writeTma(data);
+            GBTimer::writeTma(data);
             break;
 
-        // Handle writes to the Timer Control (TAC) Register
+        // Handle writes to the GBTimer Control (TAC) Register
         case MEM_TIMER_CONTROL:
-            Timer::writeTac(data);
+            GBTimer::writeTac(data);
             break;
 
         // Handle writes to the Interrupt Flag (IF) register
@@ -92,9 +92,9 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             // Check for timer interrupt requests
             if (data & IRQ_TIMER) {
                 // Send them to the timer
-                Timer::setInt();
+                GBTimer::setInt();
             } else {
-                Timer::clearInt();
+                GBTimer::clearInt();
             }
             // Don't store the Timer interrupt flag here. It's
             // handled by Timer
@@ -103,22 +103,80 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
         // Sound length counter
         // Resides in I/O region
         case MEM_SOUND_NR11:
-            ioreg[MEM_SOUND_NR11 - MEM_IO_REGS] = data;
+            ioreg[location - MEM_IO_REGS] = data;
             if (!internal) {
                 APU::loadLength1();
             }
             break;
         case MEM_SOUND_NR21:
-            ioreg[MEM_SOUND_NR21 - MEM_IO_REGS] = data;
+            ioreg[location - MEM_IO_REGS] = data;
             if (!internal) {
                 APU::loadLength2();
+            }
+            break;
+        case MEM_SOUND_NR31:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                APU::loadLength3();
+            }
+            break;
+        case MEM_SOUND_NR41:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                APU::loadLength4();
+            }
+            break;
+
+        // Sound channel disable
+        // Resides in I/O region
+        case MEM_SOUND_NR12:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                nrx2_register_t nrx2 = {.value = data};
+                if (nrx2.bits.volume == 0) {
+                    APU::disableDac1();
+                } else {
+                    APU::enableDac1();
+                }
+            }
+            break;
+        case MEM_SOUND_NR22:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                nrx2_register_t nrx2 = {.value = data};
+                if (nrx2.bits.volume == 0) {
+                    APU::disableDac2();
+                } else {
+                    APU::enableDac2();
+                }
+            }
+            break;
+        case MEM_SOUND_NR30:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                if ((data & 0x80) == 0) {
+                    APU::disableDac3();
+                } else {
+                    APU::enableDac3();
+                }
+            }
+            break;
+        case MEM_SOUND_NR42:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                nrx2_register_t nrx2 = {.value = data};
+                if (nrx2.bits.volume == 0) {
+                    APU::disableDac4();
+                } else {
+                    APU::enableDac4();
+                }
             }
             break;
 
         // Sound channel enable
         // Resides in I/O region
         case MEM_SOUND_NR14:
-            ioreg[MEM_SOUND_NR14 - MEM_IO_REGS] = data;
+            ioreg[location - MEM_IO_REGS] = data;
             if (!internal) {
                 if (data >> 7) {
                     APU::triggerSquare1();
@@ -126,15 +184,23 @@ void Memory::writeByteInternal(const uint16_t location, const uint8_t data, cons
             }
             break;
         case MEM_SOUND_NR24:
-            ioreg[MEM_SOUND_NR24 - MEM_IO_REGS] = data;
+            ioreg[location - MEM_IO_REGS] = data;
             if (!internal) {
                 if (data >> 7) {
                     APU::triggerSquare2();
                 }
             }
             break;
+        case MEM_SOUND_NR34:
+            ioreg[location - MEM_IO_REGS] = data;
+            if (!internal) {
+                if (data >> 7) {
+                    APU::triggerWave();
+                }
+            }
+            break;
         case MEM_SOUND_NR44:
-            ioreg[MEM_SOUND_NR44 - MEM_IO_REGS] = data;
+            ioreg[location - MEM_IO_REGS] = data;
             if (!internal) {
                 if (data >> 7) {
                     APU::triggerNoise();
@@ -209,23 +275,23 @@ uint8_t Memory::readByte(const uint16_t location) {
         // Handle reads to IF register
         if (location == MEM_IRQ_FLAG) {
             // Get the IRQ bit for the Timer from Timer
-            return (ioreg[MEM_IRQ_FLAG - MEM_IO_REGS] & ~IRQ_TIMER) | (Timer::checkInt() << 2);
+            return (ioreg[MEM_IRQ_FLAG - MEM_IO_REGS] & ~IRQ_TIMER) | (GBTimer::checkInt() << 2);
         }
         // Handle reads to the DIV register
         else if (location == MEM_DIVIDER) {
-            return Timer::readDiv();
+            return GBTimer::readDiv();
         }
         // Handle reads to TIMA register
         else if (location == MEM_TIMA) {
-            return Timer::readTima();
+            return GBTimer::readTima();
         }
         // Handle reads to TMA register
         else if (location == MEM_TMA) {
-            return Timer::readTma();
+            return GBTimer::readTma();
         }
         // Handle reads to TAC register
         else if (location == MEM_TIMER_CONTROL) {
-            return Timer::readTac();
+            return GBTimer::readTac();
         }
         // Handle all other IO reg locations
         else {
