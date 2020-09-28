@@ -68,83 +68,18 @@ void Timer::writeDiv(uint8_t data) {
 }
 
 void Timer::writeTima(uint8_t data) {
-    // If TIMA is written to when TMA is about to be loaded,
-    // then that value will stay in TIMA and the IF flag
-    // will not be set. Essentially, overflow changes are
-    // cancelled
-    if (timaOverflowCountdown <= 4 && timaOverflowCountdown > 0) {
-        timaPrev = tima;
-        tima = data;
-        timaOverflowCountdown = 0;
-    }
-    // If TIMA is written to on the same cycle that TMA is writing to
-    // it, then TMA takes priority
-    else if (timaOverflowCountdown <= 0 && timaOverflowCountdown > -4) {
-        // Do nothing
-        return;
-    }
-    // Otherwise, it operates normally
-    else {
-        timaPrev = tima;
-        tima = data;
-    }
+    timaPrev = tima;
+    tima = data;
 }
 
 void Timer::writeTma(uint8_t data) {
-    // if TMA is written to on the same cycle that TMA is writing to
-    // TIMA, then this value also gets written to TIMA
-    if (timaOverflowCountdown <= 0 && timaOverflowCountdown > -4) {
-        tmaPrev = tma;
-        tma = data;
-        timaPrev = tima;
-        tima = tma;
-    }
-    // Otherwise, it operates normally
-    else {
-        tmaPrev = tma;
-        tma = data;
-    }
+    tmaPrev = tma;
+    tma = data;
 }
 
 void Timer::writeTac(uint8_t data) {
     tacPrev = tac;
     tac = data;
-    // If the timer is disabled by changing TAC bit 2 from 1
-    // to 0 and the DIV bit that TAC was pointing
-    // to was also 1, then TIMA will increase
-
-    // Check if TAC was disabled with this write
-    if ((tacPrev & 0x4) && ((tac & 0x4) == 0)) {
-        // Check to see if the DIV bit that TAC
-        // was pointing to was 1
-        if (((div & 1 << tacDivBit[tacPrev & 3]) == (tacDivBit[tacPrev & 3]))) {
-            // This causes a falling edge and will increment
-            // TIMA
-            timaGlitch = true;
-        }
-        // This behavior is mutually exclusive with the other
-        // wierd TAC behavior, so we can return here for
-        // optimization
-        return;
-    }
-
-    // If TAC is changed, the old DIV bit that was selected by
-    // TAC is 1 and the new bit it 0, then TIMA will increase
-
-    // This only happens if the enable bit was set previously
-    // and is still set
-    if ((tacPrev & 0x04) & (tac & 0x04)) {
-        // Check if TAC DIV select bits have changed
-        if ((tacPrev & 0x03) != (tac & 0x03)) {
-            // Check to see if the previously pointed to DIV
-            // bit was a 1 and the new one is a zero
-            if (((div & 1 << tacDivBit[tacPrev & 0x03]) == (1 << tacDivBit[tacPrev & 0x03])) & ((div & 1 << tacDivBit[tac & 0x03]) == 0)) {
-                // If the DIV bit being pointed to was a 1 and
-                // now it's a 0, that's a falling edge
-                timaGlitch = true;
-            }
-        }
-    }
 }
 
 void Timer::timerStep() {
@@ -170,22 +105,11 @@ void Timer::timerStep() {
                 }
             }
         }
-
         // Check to see if TIMA has overflowed
         if ((timaPrev == 0xFF) && (tima == 0x00)) {
-            // If it has, then overflow changes happen in 4 clocks
-            timaOverflowCountdown = 4;
-        }
-
-        // Start counting down TIMA overflow
-        if (timaOverflowCountdown != -4) {
-            // Check if it's time for overflow changes
-            if (timaOverflowCountdown == 0) {
-                timaPrev = tima;
-                tima = tma;
-                timerInt = true;
-            }
-            timaOverflowCountdown--;
+            timaPrev = tima;
+            tima = tma;
+            timerInt = true;
         }
     }
 }
