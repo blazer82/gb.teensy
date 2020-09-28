@@ -20,7 +20,7 @@
 
 #include <Arduino.h>
 
-class Timer {
+class GBTimer {
    public:
     // Perform a single step of the timer
     static void timerStep();

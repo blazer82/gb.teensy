@@ -20,39 +20,39 @@
 
 #include <Arduino.h>
 
-uint16_t Timer::div = 0xABCC;
-uint16_t Timer::divPrev = 0xABCC;
+uint16_t GBTimer::div = 0xABCC;
+uint16_t GBTimer::divPrev = 0xABCC;
 
-uint8_t Timer::tac = 0;
-uint8_t Timer::tacPrev = 0;
+uint8_t GBTimer::tac = 0;
+uint8_t GBTimer::tacPrev = 0;
 
-uint8_t Timer::tima = 0;
-uint8_t Timer::timaPrev = 0;
+uint8_t GBTimer::tima = 0;
+uint8_t GBTimer::timaPrev = 0;
 
-uint8_t Timer::tma = 0;
-uint8_t Timer::tmaPrev = 0;
+uint8_t GBTimer::tma = 0;
+uint8_t GBTimer::tmaPrev = 0;
 
-bool Timer::timerInt = 0;
+bool GBTimer::timerInt = 0;
 
-bool Timer::timaGlitch = 0;
+bool GBTimer::timaGlitch = 0;
 
-int8_t Timer::timaOverflowCountdown = -1;
+int8_t GBTimer::timaOverflowCountdown = -1;
 
-uint8_t Timer::readDiv() { return (div & 0xFF00) >> 8; }
+uint8_t GBTimer::readDiv() { return (div & 0xFF00) >> 8; }
 
-uint8_t Timer::readTima() { return tima; }
+uint8_t GBTimer::readTima() { return tima; }
 
-uint8_t Timer::readTma() { return tma; }
+uint8_t GBTimer::readTma() { return tma; }
 
-uint8_t Timer::readTac() { return tac; }
+uint8_t GBTimer::readTac() { return tac; }
 
-bool Timer::checkInt() { return timerInt; }
+bool GBTimer::checkInt() { return timerInt; }
 
-void Timer::clearInt() { timerInt = false; }
+void GBTimer::clearInt() { timerInt = false; }
 
-void Timer::setInt() { timerInt = true; }
+void GBTimer::setInt() { timerInt = true; }
 
-void Timer::writeDiv(uint8_t data) {
+void GBTimer::writeDiv(uint8_t data) {
     // No matter what, all writes to DIV just clear DIV
     divPrev = div;
     div = 0;
@@ -67,22 +67,22 @@ void Timer::writeDiv(uint8_t data) {
     }
 }
 
-void Timer::writeTima(uint8_t data) {
+void GBTimer::writeTima(uint8_t data) {
     timaPrev = tima;
     tima = data;
 }
 
-void Timer::writeTma(uint8_t data) {
+void GBTimer::writeTma(uint8_t data) {
     tmaPrev = tma;
     tma = data;
 }
 
-void Timer::writeTac(uint8_t data) {
+void GBTimer::writeTac(uint8_t data) {
     tacPrev = tac;
     tac = data;
 }
 
-void Timer::timerStep() {
+void GBTimer::timerStep() {
     // DIV increments 4 times for each clock cycle
     for (uint i = 0; i < 4; i++) {
         divPrev = div;
